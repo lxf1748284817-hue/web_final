@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成绩管理教学平台 - 首页与课程浏览</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <header class="main-header">
+    <div class="container header-content">
+        <a href="index.html" class="logo">
+            <i class="fas fa-university"></i> 成绩管理教学平台
+        </a>
+        <nav class="main-nav">
+            <ul id="nav-list">
+                <li><a href="login.html" class="btn-login"><i class="fas fa-sign-in-alt"></i> 登录系统</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+    <main>
+        
+        <section id="search-filter" class="section-padded">
+            <div class="container">
+                <h2>📚 课程搜索与筛选</h2>
+                <div class="search-form">
+                    
+                    <input type="text" id="course-search-input" placeholder="输入课程号或课程名进行搜索...">
+                    <button id="search-btn" class="btn btn-search"><i class="fas fa-search"></i> 搜索</button>
+                    
+                    <div class="filter-group">
+                        <select id="filter-department">
+                            <option value="">-- 开课院系 --</option>
+                            </select>
+                        <select id="filter-credit">
+                            <option value="">-- 学分 --</option>
+                            <option value="1.0">1.0 学分</option>
+                            <option value="2.0">2.0 学分</option>
+                            <option value="3.0">3.0 学分</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="courses" class="section-padded">
+            <div class="container">
+                <h2>精选课程推荐</h2>
+                
+                <div id="course-list" class="course-grid">
+                    
+                    <article class="course-card">
+                        <h3>Web编程技术</h3>
+                        <p class="course-meta">
+                            <span class="credit-info"><i class="fas fa-certificate"></i> 3.0 学分 [cite: 14]</span> | 
+                            <span class="teacher-info"><i class="fas fa-user-tie"></i> 授课教师：张三 [cite: 14]</span>
+                        </p>
+                        <p class="course-intro">这是一门介绍前端和后端Web开发核心技术的课程，是计算机专业的必修课。 [cite: 14]</p>
+                        <p class="course-requirements">
+                            <strong>选课要求：</strong> 需掌握C++或Java编程基础。 [cite: 14]
+                        </p>
+                        <button class="btn btn-secondary" onclick="alert('请先登录或查看详情');">查看详情</button>
+                    </article>
+
+                    <article class="course-card">
+                        <h3>高等数学 B</h3>
+                        <p class="course-meta">
+                            <span class="credit-info"><i class="fas fa-certificate"></i> 4.0 学分</span> | 
+                            <span class="teacher-info"><i class="fas fa-user-tie"></i> 授课教师：李四</span>
+                        </p>
+                        <p class="course-intro">微积分、线性代数等基础数学知识的深入学习和应用。</p>
+                        <p class="course-requirements">
+                            <strong>选课要求：</strong> 无。
+                        </p>
+                        <button class="btn btn-secondary">查看详情</button>
+                    </article>
+                    
+                    </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2025 成绩管理教学平台. All Rights Reserved. | 符合深圳大学相关规范</p>
+            <p>技术支持：Web编程开发团队</p>
+        </div>
+    </footer>
+    
+    <script src="js/main.js"></script>
+    
+</body>
+</html>

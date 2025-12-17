@@ -1,0 +1,264 @@
+/* ==================================== */
+/* 1. 全局样式和重置 */
+/* ==================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* 边框和内边距不增加元素总宽度 */
+}
+
+/* 采用专业的、易读的无衬线字体 */
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f7f7f7; /* 略带灰色的背景 */
+}
+
+/* 定义核心颜色变量，方便后续修改 */
+:root {
+    --primary-color: #004d99;   /* 深蓝色，常用于高校官方链接和按钮 */
+    --secondary-color: #f0f0f0; /* 浅灰色，用于背景或分隔线 */
+    --accent-color: #e67e22;    /* 强调色，用于重点信息如学分 */
+    --text-dark: #333;
+    --text-light: #fff;
+}
+
+/* 容器：限制内容宽度并居中，用于响应式布局 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 链接基础样式 */
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+a:hover {
+    color: var(--accent-color);
+}
+
+/* 按钮基础样式 */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+    text-align: center;
+    transition: background-color 0.3s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+}
+
+.btn-primary:hover {
+    background-color: #003366;
+}
+
+.btn-secondary {
+    background-color: #eee;
+    color: var(--text-dark);
+    border: 1px solid #ccc;
+}
+
+.btn-secondary:hover {
+    background-color: #ddd;
+}
+
+/* ==================================== */
+/* 2. 头部导航栏 (Header) 样式 */
+/* ==================================== */
+.main-header {
+    background-color: var(--text-light);
+    border-bottom: 2px solid var(--primary-color); /* 顶部蓝色强调线 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 15px 0;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+}
+
+.logo i {
+    margin-right: 10px;
+}
+
+/* 主导航栏 */
+.main-nav ul {
+    list-style: none;
+    display: flex;
+}
+
+.main-nav li {
+    margin-left: 30px;
+}
+
+.main-nav a {
+    color: var(--text-dark);
+    padding-bottom: 5px;
+}
+
+.main-nav a.active,
+.main-nav a:hover {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+}
+
+/* ==================================== */
+/* 3. 主要内容区 (Main) 样式 */
+/* ==================================== */
+main {
+    padding-bottom: 50px;
+}
+
+.section-padded {
+    padding: 40px 0;
+}
+
+h2 {
+    font-size: 1.8em;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    border-left: 5px solid var(--primary-color);
+    padding-left: 10px;
+}
+
+/* 搜索与筛选表单 */
+.search-form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    background-color: var(--text-light);
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-form input[type="text"],
+.search-form select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.search-form input[type="text"] {
+    flex-grow: 1; /* 搜索框占据主要空间 */
+}
+
+/* ==================================== */
+/* 4. 课程卡片 (Course Card) 样式 */
+/* ==================================== */
+.course-grid {
+    display: grid;
+    /* 修改点 1：使用 auto-fill 替代 auto-fit */
+    /* auto-fill 会在空间足够时留下空白列，而不是强迫现有的卡片拉伸 */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+    gap: 30px;
+    margin-top: 30px;
+    align-items: start; /* 顶部对齐，防止卡片被垂直拉伸 */
+}
+
+.course-card {
+    background-color: var(--text-light);
+    border-radius: 8px;
+    overflow: hidden;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+
+    /* 修改点 2：增加最大宽度限制 */
+    /* 这样即使只有一张卡片，它最多也就 400px 宽，不会横跨全屏 */
+    max-width: 400px; 
+    width: 100%;
+    
+    /* 让卡片在布局中表现更稳定 */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 响应式微调：在手机端，让卡片可以占满屏幕 */
+@media (max-width: 480px) {
+    .course-card {
+        max-width: 100%;
+    }
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+}
+
+.course-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-size: 1.4em;
+}
+
+.course-meta {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.course-meta i {
+    margin-right: 5px;
+    color: var(--primary-color);
+}
+
+.credit-info {
+    font-weight: bold;
+    color: var(--accent-color); 
+}
+
+.course-intro {
+    margin-bottom: 15px;
+    flex-grow: 1; /* 让介绍部分自适应撑开，保证按钮对齐 */
+}
+
+.course-requirements {
+    font-size: 0.9em;
+    margin-bottom: 20px;
+    color: #777;
+}
+
+.course-requirements strong {
+    color: var(--text-dark);
+}
+
+/* ==================================== */
+/* 5. 底部 (Footer) 样式 */
+/* ==================================== */
+.main-footer {
+    background-color: #333;
+    color: #ccc;
+    padding: 30px 0;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.main-footer p {
+    margin-bottom: 5px;
+}
+
+.main-footer a {
+    color: #fff;
+}
