@@ -1,131 +1,142 @@
-// ====================================
-// 1. 模拟数据和状态
-// ====================================
-
-// 模拟数据库中存储的用户账号和绑定邮箱 (通常由后端维护)
-const userEmailsDB = [
-    { username: '2023001', email: 'stu001@school.edu.cn' },
-    { username: 'T001', email: 'teacher01@school.edu.cn' },
-    { username: 'ADM01', email: 'admin@school.edu.cn' },
-];
-
-// 模拟验证码和计时器状态
-let currentStep = 1;
-let sentVerificationCode = null; // 模拟服务器发送的验证码
-let timerInterval = null;
-const COUNTDOWN_SECONDS = 60;
-
-// ====================================
-// 2. 页面元素获取
-// ====================================
-const form = document.getElementById('forgot-password-form');
-const usernameInput = document.getElementById('reset-username');
-const emailInput = document.getElementById('reset-email');
-const codeGroup = document.getElementById('verification-code-group');
-const codeInput = document.getElementById('verification-code');
-const sendCodeBtn = document.getElementById('send-code-btn');
-const nextStepBtn = document.getElementById('next-step-btn');
-const errorMessageDiv = document.getElementById('reset-error-message');
-
-// ====================================
-// 3. 事件监听器
-// ====================================
-form.addEventListener('submit', handleFormSubmit);
-sendCodeBtn.addEventListener('click', sendVerificationCode);
-
-// ====================================
-// 4. 核心逻辑函数
-// ====================================
-
 /**
- * 启动发送验证码按钮的倒计时。
+ * 找回密码模块 (由 [你的名字] 维护)
+ * 对整合者友好：
+ * 1. 封装在 ForgotPasswordModule 命名空间下。
+ * 2. 数据库连接适配 BaseDB 或全局 openDB。
+ * 3. 业务逻辑（步骤切换、验证码模拟）独立于 UI 操作。
  */
-function startCountdown() {
-    let secondsLeft = COUNTDOWN_SECONDS;
-    sendCodeBtn.disabled = true;
-    sendCodeBtn.textContent = `重新发送 (${secondsLeft}s)`;
-    
-    timerInterval = setInterval(() => {
-        secondsLeft--;
-        if (secondsLeft <= 0) {
-            clearInterval(timerInterval);
-            sendCodeBtn.disabled = false;
-            sendCodeBtn.textContent = '发送验证码';
+
+const ForgotPasswordModule = {
+    // 1. 状态管理
+    state: {
+        currentStep: 1,
+        sentVerificationCode: null,
+        timerInterval: null,
+        countdownSeconds: 60
+    },
+
+    // 2. 页面元素获取 (使用 Getter 确保动态获取)
+    get els() {
+        return {
+            form: document.getElementById('forgot-password-form'),
+            username: document.getElementById('reset-username'),
+            email: document.getElementById('reset-email'),
+            codeGroup: document.getElementById('verification-code-group'),
+            code: document.getElementById('verification-code'),
+            sendBtn: document.getElementById('send-code-btn'),
+            nextBtn: document.getElementById('next-step-btn'),
+            error: document.getElementById('reset-error-message')
+        };
+    },
+
+    // 3. 数据库适配接口
+    async getDB() {
+        if (typeof BaseDB !== 'undefined' && typeof BaseDB.open === 'function') {
+            return await BaseDB.open();
+        } else if (typeof openDB === 'function') {
+            return await openDB();
+        }
+        throw new Error("ForgotPasswordModule: 数据库接口未就绪");
+    },
+
+    /**
+     * 在数据库中查找匹配的用户
+     */
+    async findUserByInfo(username, email) {
+        const db = await this.getDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['users'], 'readonly');
+            const store = tx.objectStore('users');
+            const request = store.openCursor();
+            
+            request.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    // 字段必须对齐小组文档：username 和 email
+                    if (cursor.value.username === username && cursor.value.email === email) {
+                        resolve(cursor.value);
+                    } else {
+                        cursor.continue();
+                    }
+                } else {
+                    resolve(null);
+                }
+            };
+            request.onerror = () => reject("查询失败");
+        });
+    },
+
+    // 4. 辅助功能：验证码与倒计时
+    startCountdown() {
+        let left = this.state.countdownSeconds;
+        const btn = this.els.sendBtn;
+        btn.disabled = true;
+        
+        this.state.timerInterval = setInterval(() => {
+            left--;
+            if (left <= 0) {
+                clearInterval(this.state.timerInterval);
+                btn.disabled = false;
+                btn.textContent = '发送验证码';
+            } else {
+                btn.textContent = `重新发送 (${left}s)`;
+            }
+        }, 1000);
+    },
+
+    sendCode() {
+        if (this.els.sendBtn.disabled) return;
+        this.state.sentVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+        // 模拟邮件行为
+        alert(`【模拟邮件系统】\n验证码已发送至您的绑定邮箱。\n验证码：${this.state.sentVerificationCode}`);
+        this.startCountdown();
+    },
+
+    // 5. 核心：表单流程控制
+    async handleSubmit(e) {
+        e.preventDefault();
+        const { username, email, code, codeGroup, nextBtn, error } = this.els;
+        error.textContent = '';
+
+        const usernameVal = username.value.trim();
+        const emailVal = email.value.trim();
+
+        if (this.state.currentStep === 1) {
+            // 第一步：验证身份
+            try {
+                const user = await this.findUserByInfo(usernameVal, emailVal);
+                if (user) {
+                    this.state.currentStep = 2;
+                    username.disabled = true;
+                    email.disabled = true;
+                    codeGroup.style.display = 'block';
+                    nextBtn.textContent = '验证并跳转';
+                    this.sendCode();
+                } else {
+                    error.textContent = '账号或邮箱输入错误，请重试。';
+                }
+            } catch (err) {
+                error.textContent = '系统繁忙，请稍后再试。';
+            }
         } else {
-            sendCodeBtn.textContent = `重新发送 (${secondsLeft}s)`;
+            // 第二步：核对验证码
+            if (code.value.trim() === this.state.sentVerificationCode) {
+                alert('身份验证成功！');
+                // 跳转到重置密码页，传递用户名
+                window.location.href = `change_password.html?user=${usernameVal}&force=true`;
+            } else {
+                error.textContent = '验证码不正确。';
+            }
         }
-    }, 1000);
-}
+    },
 
-/**
- * 模拟发送验证码到用户邮箱 (必做功能实现)
- */
-function sendVerificationCode() {
-    // 阻止重复发送
-    if (sendCodeBtn.disabled) return;
-    
-    // 模拟生成一个4位随机验证码
-    sentVerificationCode = Math.floor(1000 + Math.random() * 9000).toString();
-    
-    // 模拟发送邮件成功提示
-    alert(`【邮件已发送】请检查您绑定的邮箱。模拟验证码为：${sentVerificationCode} (请勿泄露)`);
-    
-    // 开始倒计时
-    startCountdown();
-}
-
-/**
- * 处理表单提交 (身份验证 或 验证码验证)
- */
-function handleFormSubmit(event) {
-    event.preventDefault();
-    errorMessageDiv.textContent = '';
-    
-    const username = usernameInput.value.trim();
-    const email = emailInput.value.trim();
-
-    if (currentStep === 1) {
-        // 第一步：验证账号和邮箱
-        
-        const user = userEmailsDB.find(u => u.username === username && u.email === email);
-        
-        if (user) {
-            // 验证成功，进入第二步
-            currentStep = 2;
-            
-            // 禁用账号和邮箱输入框，防止用户修改
-            usernameInput.disabled = true;
-            emailInput.disabled = true;
-            
-            // 显示验证码输入框和发送按钮
-            codeGroup.style.display = 'block';
-            
-            // 更新按钮文本和功能
-            nextStepBtn.textContent = '验证并重置密码';
-            
-            // 自动触发一次验证码发送，以提高用户体验
-            sendVerificationCode();
-            
-        } else {
-            errorMessageDiv.textContent = '账号与绑定邮箱不匹配，请核对信息。';
-        }
-        
-    } else if (currentStep === 2) {
-        // 第二步：验证验证码
-        const enteredCode = codeInput.value.trim();
-        
-        if (!enteredCode) {
-            errorMessageDiv.textContent = '请输入您收到的邮箱验证码。';
-            return;
-        }
-
-        if (enteredCode === sentVerificationCode) {
-            // 验证码匹配成功，模拟跳转到最终的密码重置页面
-            alert('验证成功！即将跳转到密码重置页面。');
-            window.location.href = 'reset_password.html?token=valid'; // token模拟验证通过
-            
-        } else {
-            errorMessageDiv.textContent = '验证码输入错误，请重试或重新发送。';
-        }
+    // 6. 初始化
+    init() {
+        const { form, sendBtn } = this.els;
+        if (form) form.addEventListener('submit', (e) => this.handleSubmit(e));
+        if (sendBtn) sendBtn.addEventListener('click', () => this.sendCode());
     }
-}
+};
+
+// 启动
+document.addEventListener('DOMContentLoaded', () => ForgotPasswordModule.init());

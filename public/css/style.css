@@ -165,83 +165,55 @@ h2 {
 }
 
 /* ==================================== */
-/* 4. 课程卡片 (Course Card) 样式 */
+/* 4. 课程卡片 (Course Card) 等高优化 */
 /* ==================================== */
 .course-grid {
     display: grid;
-    /* 修改点 1：使用 auto-fill 替代 auto-fit */
-    /* auto-fill 会在空间足够时留下空白列，而不是强迫现有的卡片拉伸 */
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
     gap: 30px;
     margin-top: 30px;
-    align-items: start; /* 顶部对齐，防止卡片被垂直拉伸 */
+    /* 移除之前的 align-items: start; */
+    /* 默认的 stretch 会让同一行的卡片等高 */
+    align-items: stretch; 
 }
 
 .course-card {
     background-color: var(--text-light);
     border-radius: 8px;
-    overflow: hidden;
     padding: 25px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
     transition: transform 0.3s, box-shadow 0.3s;
-
-    /* 修改点 2：增加最大宽度限制 */
-    /* 这样即使只有一张卡片，它最多也就 400px 宽，不会横跨全屏 */
     max-width: 400px; 
     width: 100%;
-    
-    /* 让卡片在布局中表现更稳定 */
+
+    /* 核心修改：让卡片内部变为 Flex 容器 */
     display: flex;
-    flex-direction: column;
-}
-
-/* 响应式微调：在手机端，让卡片可以占满屏幕 */
-@media (max-width: 480px) {
-    .course-card {
-        max-width: 100%;
-    }
-}
-
-.course-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-}
-
-.course-card h3 {
-    color: var(--primary-color);
-    margin-bottom: 10px;
-    font-size: 1.4em;
-}
-
-.course-meta {
-    font-size: 0.9em;
-    color: #666;
-    margin-bottom: 15px;
-}
-
-.course-meta i {
-    margin-right: 5px;
-    color: var(--primary-color);
-}
-
-.credit-info {
-    font-weight: bold;
-    color: var(--accent-color); 
+    flex-direction: column; 
+    height: 100%; /* 确保卡片填满 Grid 单元格的高度 */
 }
 
 .course-intro {
     margin-bottom: 15px;
-    flex-grow: 1; /* 让介绍部分自适应撑开，保证按钮对齐 */
+    /* 核心修改：自动撑开中间区域 */
+    /* 这会把下方的要求和按钮“推”到底部，实现垂直对齐 */
+    flex-grow: 1; 
+    line-height: 1.6;
 }
 
 .course-requirements {
     font-size: 0.9em;
     margin-bottom: 20px;
     color: #777;
+    /* 确保要求部分也在按钮上方 */
+    margin-top: auto; 
+    padding-top: 10px;
+    border-top: 1px dashed #eee; /* 可选：加个分割线更清晰 */
 }
 
-.course-requirements strong {
-    color: var(--text-dark);
+.course-card button {
+    /* 按钮将始终固定在卡片最底部 */
+    align-self: flex-start; 
+    width: 100%; /* 可选：让按钮占满宽度 */
 }
 
 /* ==================================== */

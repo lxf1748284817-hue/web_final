@@ -1,200 +1,175 @@
-// ====================================
-// 1. 页面元素与全局状态
-// ====================================
-const changeForm = document.getElementById('change-password-form');
-const oldPasswordGroup = document.getElementById('old-password-group');
-const oldPasswordInput = document.getElementById('old-password');
-const newPasswordInput = document.getElementById('new-password');
-const confirmPasswordInput = document.getElementById('confirm-password');
-const errorMessageDiv = document.getElementById('change-error-message');
-const strengthIndicator = document.getElementById('password-strength-indicator');
-const pageInfoText = document.getElementById('info-text');
-const backToLoginLink = document.getElementById('back-to-login');
-const changeTitle = document.getElementById('change-title');
-
-// 统一使用的 localStorage 键
-const DB_KEY = 'mock_user_db';
-let isForceChange = false; // 是否处于强制修改模式
-let currentUsername = '';  // 当前正在修改密码的用户
-
-// ====================================
-// 2. 辅助函数 (数据管理与哈希模拟)
-// ====================================
-
 /**
- * 获取 localStorage 中的用户数据库。
+ * 密码修改模块 (由 [你的名字] 维护)
+ * 对整合者友好：
+ * 1. 移除了硬编码的数据库配置，统一调用 BaseDB 命名空间。
+ * 2. 逻辑封装在 PasswordModule 中，避免变量名冲突。
+ * 3. 增强了参数获取的安全性。
  */
-function getUsersDB() {
-    return JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-}
 
-/**
- * 将更新后的用户数据库存回 localStorage。
- */
-function saveUsersDB(db) {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-}
+const PasswordModule = {
+    // 状态配置
+    state: {
+        isForceChange: false,
+        currentUsername: ''
+    },
 
-/**
- * 模拟密码加盐哈希函数 (必须与 security.js 中的逻辑保持一致)。
- */
-function hashPassword(password, salt) {
-    // 假设您在 security.js 中设置的通用哈希值：
-    if (password === 'NewPass123' && salt) { 
-        return 'new_password_hash'; // 用于测试新密码
-    }
-    if (password === 'password' && salt === '2023001') {
-        return 'student_hash_123';
-    }
-    // ... 添加其他旧密码匹配 ...
-    
-    // 如果是首次登录修改，新密码应该匹配 'new_password_hash'
-    if (isForceChange) {
-        // 强制修改时，任何符合强度要求的新密码都模拟为 'new_password_hash'
-        return 'new_password_hash'; 
-    }
-    
-    return 'mismatch_hash';
-}
+    // 页面元素映射
+    get els() {
+        return {
+            form: document.getElementById('change-password-form'),
+            oldGroup: document.getElementById('old-password-group'),
+            oldInput: document.getElementById('old-password'),
+            newInput: document.getElementById('new-password'),
+            confirmInput: document.getElementById('confirm-password'),
+            errorDiv: document.getElementById('change-error-message'),
+            strength: document.getElementById('password-strength-indicator'),
+            title: document.getElementById('change-title'),
+            info: document.getElementById('info-text')
+        };
+    },
 
-// ====================================
-// 3. 密码强度检查 (与 reset_password.js 相同)
-// ====================================
-
-function checkPasswordStrength() {
-    // ... (强度检查逻辑与 reset_password.js 保持一致) ...
-    const password = newPasswordInput.value;
-    let score = 0;
-    
-    const hasLength = password.length >= 8;
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-
-    if (hasLength) score++;
-    if (hasLowerCase) score++;
-    if (hasUpperCase) score++;
-    if (hasNumber) score++;
-    if (hasSpecial) score++;
-    
-    let strengthText = '弱';
-    let strengthColor = 'red';
-
-    if (score >= 4) {
-        strengthText = '强';
-        strengthColor = 'green';
-    } else if (score >= 3) {
-        strengthText = '中';
-        strengthColor = 'orange';
-    }
-
-    strengthIndicator.textContent = `密码强度：${strengthText}`;
-    strengthIndicator.style.color = strengthColor;
-    
-    return score;
-}
-
-// ====================================
-// 4. 表单提交处理
-// ====================================
-
-changeForm.addEventListener('submit', handleChangePassword);
-newPasswordInput.addEventListener('input', checkPasswordStrength);
-
-function handleChangePassword(event) {
-    event.preventDefault();
-    errorMessageDiv.textContent = '';
-    
-    const oldPassword = oldPasswordInput.value;
-    const newPassword = newPasswordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
-    
-    let usersDB = getUsersDB();
-    const userIndex = usersDB.findIndex(u => u.username === currentUsername);
-
-    if (userIndex === -1) {
-        errorMessageDiv.textContent = '无法识别当前用户身份，请重新登录。';
-        return;
-    }
-    const user = usersDB[userIndex];
-    
-    // 1. 旧密码验证 (仅在主动修改模式下)
-    if (!isForceChange) {
-        const enteredOldHash = hashPassword(oldPassword, user.salt);
-        if (enteredOldHash !== user.hashedPassword) {
-            errorMessageDiv.textContent = '旧密码输入错误，请重试。';
-            return;
+    /**
+     * 数据库兼容性连接
+     */
+    async getDB() {
+        if (typeof BaseDB !== 'undefined' && typeof BaseDB.open === 'function') {
+            return await BaseDB.open();
+        } else if (typeof openDB === 'function') {
+            return await openDB();
         }
-    }
-    
-    // 2. 新密码一致性检查
-    if (newPassword !== confirmPassword) {
-        errorMessageDiv.textContent = '两次输入的新密码不一致。';
-        return;
-    }
-    
-    // 3. 密码强度检查
-    const strengthScore = checkPasswordStrength();
-    if (strengthScore < 3) {
-        errorMessageDiv.textContent = '新密码强度不足，请使用至少8位、包含大小写字母和数字的组合。';
-        return;
-    }
-    
-    // 4. 更新数据库 (哈希并存储)
-    
-    // 模拟新密码哈希 (这里使用与 security.js 约定好的新哈希值)
-    const newHashedPassword = hashPassword(newPassword, user.salt);
+        throw new Error("PasswordModule: 无法找到数据库连接接口");
+    },
 
-    // 更新用户的密码哈希值
-    usersDB[userIndex].hashedPassword = newHashedPassword;
-    
-    // 如果是强制修改，清除 'isFirstLogin' 标记
-    if (isForceChange) {
-        usersDB[userIndex].isFirstLogin = false;
-    }
-    
-    // 保存回 localStorage
-    saveUsersDB(usersDB);
-    
-    // 5. 成功反馈和跳转
-    alert('密码修改成功！请使用新密码重新登录。');
-    window.location.href = 'login.html'; 
-}
-
-// ====================================
-// 5. 初始化与模式切换
-// ====================================
-
-/**
- * 根据 URL 参数初始化页面，检测是否为强制修改。
- */
-function initializePage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    isForceChange = urlParams.get('force') === 'true';
-    currentUsername = urlParams.get('user') || '2023001'; // 默认一个用户进行测试
-    
-    if (isForceChange) {
-        // 强制修改模式
-        changeTitle.textContent = '强制修改初始密码';
-        pageInfoText.innerHTML = '您正在首次登录，**请务必设置一个符合强度要求的新密码！**';
-        
-        // 隐藏旧密码字段
-        oldPasswordGroup.style.display = 'none';
-        oldPasswordInput.removeAttribute('required'); // 移除 HTML 必填属性
-        
-        // 阻止用户跳过此页面
-        backToLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('请先完成密码修改！');
+    /**
+     * 核心逻辑：从数据库通过用户名查找完整用户对象
+     */
+    async findUser(username) {
+        const db = await this.getDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['users'], 'readonly');
+            const store = transaction.objectStore('users');
+            const request = store.openCursor();
+            
+            request.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.username === username) resolve(cursor.value);
+                    else cursor.continue();
+                } else resolve(null);
+            };
+            request.onerror = () => reject("查询失败");
         });
-        
-    } else {
-        // 主动修改模式 (需要旧密码验证)
-        oldPasswordInput.setAttribute('required', 'true');
-        changeTitle.textContent = '修改账户密码';
-        // 假设用户是从工作台跳转过来，无需特殊处理
-    }
-}
+    },
 
-document.addEventListener('DOMContentLoaded', initializePage);
+    /**
+     * 核心逻辑：更新用户数据
+     */
+    async saveUser(user) {
+        const db = await this.getDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['users'], 'readwrite');
+            const store = transaction.objectStore('users');
+            const request = store.put(user);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject("更新失败");
+        });
+    },
+
+    /**
+     * 密码强度检测
+     */
+    checkStrength() {
+        const pass = this.els.newInput.value;
+        let score = 0;
+        if (pass.length >= 8) score++;
+        if (/[a-z]/.test(pass)) score++;
+        if (/[A-Z]/.test(pass)) score++;
+        if (/[0-9]/.test(pass)) score++;
+        if (/[!@#$%^&*]/.test(pass)) score++;
+
+        const config = [
+            { c: 'red', t: '太短' }, { c: 'red', t: '弱' }, 
+            { c: 'orange', t: '中' }, { c: 'orange', t: '中' }, 
+            { c: 'green', t: '强' }, { c: 'green', t: '强' }
+        ];
+        
+        this.els.strength.textContent = `密码强度：${config[score].t}`;
+        this.els.strength.style.color = config[score].c;
+        return score;
+    },
+
+    /**
+     * 表单提交处理
+     */
+    async handleSubmit(e) {
+        e.preventDefault();
+        const { oldInput, newInput, confirmInput, errorDiv } = this.els;
+        errorDiv.textContent = '';
+
+        try {
+            const user = await this.findUser(this.state.currentUsername);
+            if (!user) throw new Error("用户不存在");
+
+            // 1. 验证旧密码 (非强制改密模式下)
+            if (!this.state.isForceChange) {
+                // 调用 AuthModule 的哈希方法或本地模拟
+                const hashFn = (typeof AuthModule !== 'undefined') ? AuthModule.hashPassword : this._mockHash;
+                if (hashFn(oldInput.value, user.salt) !== user.hashedPassword) {
+                    errorDiv.textContent = '旧密码验证失败';
+                    return;
+                }
+            }
+
+            // 2. 验证新密码
+            if (newInput.value !== confirmInput.value) {
+                errorDiv.textContent = '两次输入不一致';
+                return;
+            }
+            if (this.checkStrength() < 3) {
+                errorDiv.textContent = '密码太弱，请包含字母和数字';
+                return;
+            }
+
+            // 3. 执行更新
+            const finalHashFn = (typeof AuthModule !== 'undefined') ? AuthModule.hashPassword : this._mockHash;
+            user.hashedPassword = finalHashFn(newInput.value, user.salt);
+            if (this.state.isForceChange) user.isFirstLogin = false;
+
+            await this.saveUser(user);
+            alert('修改成功，请重新登录');
+            window.location.href = 'login.html';
+
+        } catch (err) {
+            errorDiv.textContent = "操作失败: " + err.message;
+        }
+    },
+
+    // 内部备用哈希模拟
+    _mockHash(p, s) {
+        if (p === 'password' && s === '2023001') return 'student_hash_123';
+        if (p === 'NewPass123' || p === 'ForcePass!1') return 'new_password_hash';
+        return 'mismatch_hash';
+    },
+
+    /**
+     * 页面初始化
+     */
+    init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.state.isForceChange = urlParams.get('force') === 'true';
+        this.state.currentUsername = urlParams.get('user') || '2023001';
+
+        const { form, oldGroup, oldInput, title, info, newInput } = this.els;
+
+        if (this.state.isForceChange) {
+            if(title) title.textContent = '设置新密码';
+            if(oldGroup) oldGroup.style.display = 'none';
+            if(oldInput) oldInput.removeAttribute('required');
+        }
+
+        if(form) form.addEventListener('submit', (e) => this.handleSubmit(e));
+        if(newInput) newInput.addEventListener('input', () => this.checkStrength());
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => PasswordModule.init());

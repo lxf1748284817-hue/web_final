@@ -1,141 +1,146 @@
-// ====================================
-// 1. 页面元素获取
-// ====================================
-const resetForm = document.getElementById('reset-password-form');
-const newPasswordInput = document.getElementById('new-password');
-const confirmPasswordInput = document.getElementById('confirm-password');
-const errorMessageDiv = document.getElementById('reset-error-message');
-const strengthIndicator = document.getElementById('password-strength-indicator');
-
-// 定义 localStorage 键 (必须与 security.js 保持一致)
-const DB_KEY = 'mock_user_db'; 
-
-// ====================================
-// 2. 事件监听器
-// ====================================
-resetForm.addEventListener('submit', handlePasswordReset);
-newPasswordInput.addEventListener('input', checkPasswordStrength); 
-confirmPasswordInput.addEventListener('input', clearErrorMessage); 
-
-// ====================================
-// 3. 核心安全逻辑：密码强度检查 (保持不变)
-// ====================================
-
 /**
- * 实时检查并显示新密码的强度。
+ * 密码重置模块 (由 [你的名字] 维护)
+ * 对整合者友好：
+ * 1. 封装在 ResetPasswordModule 命名空间下。
+ * 2. 数据库连接适配 BaseDB 或全局 openDB。
+ * 3. 哈希算法逻辑优先尝试调用 AuthModule.hashPassword 以保持全局一致。
  */
-function checkPasswordStrength() {
-    const password = newPasswordInput.value;
-    let score = 0;
-    
-    // 强度规则 (至少满足以下3项)
-    const hasLength = password.length >= 8;
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
-    // 计分
-    if (hasLength) score++;
-    if (hasLowerCase) score++;
-    if (hasUpperCase) score++;
-    if (hasNumber) score++;
-    if (hasSpecial) score++;
-    
-    let strengthText = '弱';
-    let strengthColor = 'red';
+const ResetPasswordModule = {
+    // 1. 页面元素映射 (Getter 模式)
+    get els() {
+        return {
+            form: document.getElementById('reset-password-form'),
+            newInput: document.getElementById('new-password'),
+            confirmInput: document.getElementById('confirm-password'),
+            errorDiv: document.getElementById('reset-error-message'),
+            strength: document.getElementById('password-strength-indicator')
+        };
+    },
 
-    if (score >= 4) {
-        strengthText = '强';
-        strengthColor = 'green';
-    } else if (score >= 3) {
-        strengthText = '中';
-        strengthColor = 'orange';
-    }
+    // 2. 数据库适配接口
+    async getDB() {
+        if (typeof BaseDB !== 'undefined' && typeof BaseDB.open === 'function') {
+            return await BaseDB.open();
+        } else if (typeof openDB === 'function') {
+            return await openDB();
+        }
+        throw new Error("ResetPasswordModule: 未找到数据库连接接口");
+    },
 
-    strengthIndicator.textContent = `密码强度：${strengthText}`;
-    strengthIndicator.style.color = strengthColor;
-    
-    return score;
-}
+    /**
+     * 核心数据库操作：更新指定用户的密码
+     */
+    async updatePassword(username, newPassword) {
+        const db = await this.getDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['users'], 'readwrite');
+            const store = tx.objectStore('users');
+            const request = store.openCursor();
+            let found = false;
 
-/**
- * 处理密码重置表单提交 (新增了对 localStorage 的更新逻辑)
- */
-function handlePasswordReset(event) {
-    event.preventDefault();
-    errorMessageDiv.textContent = '';
-    
-    const newPassword = newPasswordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
+            request.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    if (cursor.value.username === username) {
+                        const userData = cursor.value;
+                        
+                        // 优先使用全局哈希算法，否则降级使用模拟值
+                        const hashFn = (typeof AuthModule !== 'undefined' && AuthModule.hashPassword) 
+                                       ? AuthModule.hashPassword 
+                                       : (p) => 'new_password_hash';
 
-    // 1. 前端验证 (一致性和强度)
-    if (newPassword !== confirmPassword) {
-        errorMessageDiv.textContent = '两次输入的密码不一致，请重新检查。';
-        return;
-    }
+                        userData.hashedPassword = hashFn(newPassword, userData.salt);
+                        
+                        // 重置成功后，强制改密标记一律设为 false
+                        userData.isFirstLogin = false;
 
-    const strengthScore = checkPasswordStrength();
-    if (strengthScore < 3) {
-        errorMessageDiv.textContent = '密码强度不足，请使用至少8位、包含大小写字母和数字的组合。';
-        return;
-    }
+                        const updateReq = cursor.update(userData);
+                        updateReq.onsuccess = () => {
+                            found = true;
+                            resolve(true);
+                        };
+                    } else {
+                        cursor.continue();
+                    }
+                } else if (!found) {
+                    resolve(false);
+                }
+            };
+            request.onerror = () => reject("数据库写操作失败");
+        });
+    },
 
-    // 2. 身份令牌检查 (确保流程合法)
-    const urlParams = new URLSearchParams(window.location.search);
-    const isValidProcess = urlParams.get('token') === 'valid' || urlParams.get('force') === 'true';
+    // 3. 密码强度校验逻辑
+    checkStrength() {
+        const pass = this.els.newInput.value;
+        let score = 0;
+        if (pass.length >= 8) score++;
+        if (/[a-z]/.test(pass)) score++;
+        if (/[A-Z]/.test(pass)) score++;
+        if (/[0-9]/.test(pass)) score++;
+        if (/[!@#$%^&*]/.test(pass)) score++;
 
-    if (!isValidProcess) {
-         errorMessageDiv.textContent = '安全验证失败，请从正确的“忘记密码”或“首次登录”流程进入此页面。';
-         return;
-    }
-    
-    // ===================================================================
-    // 3. 模拟密码更新到 localStorage (解决无法登录的核心问题)
-    // ===================================================================
+        const strengthMap = ['太弱', '弱', '中', '中', '强', '强'];
+        const colorMap = ['red', 'red', 'orange', 'orange', 'green', 'green'];
 
-    // 在实际项目中，token/force 参数会携带用户名或其他身份标识
-    // 这里我们先硬编码一个目标用户进行演示：
-    const targetUsername = '2023001'; 
-    const SIMULATED_NEW_HASH = 'new_password_hash'; // 必须与 security.js 中的模拟哈希匹配！
+        this.els.strength.textContent = `密码强度：${strengthMap[score]}`;
+        this.els.strength.style.color = colorMap[score];
+        return score;
+    },
 
-    let usersDB = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-    const userIndex = usersDB.findIndex(u => u.username === targetUsername);
+    // 4. 事件处理逻辑
+    async handleReset(e) {
+        e.preventDefault();
+        const { newInput, confirmInput, errorDiv } = this.els;
+        errorDiv.textContent = '';
 
-    if (userIndex !== -1) {
-        // 更新哈希值 (使用模拟的通用新哈希值)
-        usersDB[userIndex].hashedPassword = SIMULATED_NEW_HASH;
-        
-        // 如果是从强制修改流程过来的，标记用户已修改密码
-        if (urlParams.get('force') === 'true') {
-            usersDB[userIndex].isFirstLogin = false;
+        // 获取 URL 中的目标用户
+        const params = new URLSearchParams(window.location.search);
+        const username = params.get('user');
+
+        if (!username) {
+            errorDiv.textContent = '非法请求：未指定重置目标。';
+            return;
         }
 
-        // 存回 localStorage (模拟持久化)
-        localStorage.setItem(DB_KEY, JSON.stringify(usersDB));
-        
-        // 4. 提交成功和跳转
-        alert('密码已成功重置！请使用新密码登录。');
-        window.location.href = 'login.html'; 
-        
-    } else {
-        errorMessageDiv.textContent = '无法找到用户数据，重置失败。';
-        // 此时仍然跳转回登录页，保证流程不中断
-        setTimeout(() => { window.location.href = 'login.html'; }, 3000);
-    }
-}
+        // 校验
+        if (newInput.value !== confirmInput.value) {
+            errorDiv.textContent = '两次输入不一致。';
+            return;
+        }
+        if (this.checkStrength() < 3) {
+            errorDiv.textContent = '密码强度不足。';
+            return;
+        }
 
-/**
- * 清除错误消息，用于用户开始输入新密码时。
- */
-function clearErrorMessage() {
-    errorMessageDiv.textContent = '';
-}
+        try {
+            const success = await this.updatePassword(username, newInput.value);
+            if (success) {
+                alert('密码重置成功，请重新登录。');
+                window.location.href = 'login.html';
+            } else {
+                errorDiv.textContent = '未找到该用户，重置失败。';
+            }
+        } catch (err) {
+            errorDiv.textContent = '操作异常：' + err;
+        }
+    },
 
-// 初始化时检查 URL，如果是强制修改密码（来自 security.js）则给出提示 (保持不变)
-document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('force') === 'true') {
-        alert('【系统提示】这是您的首次登录，请强制修改初始默认密码！');
+    // 5. 初始化
+    init() {
+        const { form, newInput, confirmInput } = this.els;
+        if (form) form.addEventListener('submit', (e) => this.handleReset(e));
+        if (newInput) newInput.addEventListener('input', () => this.checkStrength());
+        if (confirmInput) confirmInput.addEventListener('input', () => this.els.errorDiv.textContent = '');
+        
+        // 首次加载检查 URL 标记
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('force') === 'true') {
+            console.log("ResetModule: 检测到强制重置模式激活");
+        }
     }
-});
+};
+
+// 启动模块
+document.addEventListener('DOMContentLoaded', () => ResetPasswordModule.init());

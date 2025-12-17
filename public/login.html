@@ -13,7 +13,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 确保内容占据大部分视口高度 */
             min-height: calc(100vh - 120px); 
             padding: 40px 20px;
         }
@@ -24,14 +23,14 @@
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px; /* 限制登录框最大宽度 */
+            max-width: 400px;
         }
 
         .login-box h2 {
             text-align: center;
             color: var(--primary-color);
             margin-bottom: 30px;
-            border-left: none; /* 移除首页 h2 的左侧蓝线 */
+            border-left: none;
         }
         
         .form-group {
@@ -45,7 +44,6 @@
             color: #555;
         }
         
-        /* 继承 style.css 中的输入框基础样式 */
         .form-group input {
             width: 100%;
             padding: 12px;
@@ -60,12 +58,18 @@
             margin-top: 15px;
             text-align: center;
             font-size: 0.9em;
+            min-height: 1.2em; /* 防止文字出现时抖动 */
         }
 
         .forgot-password {
-            text-align: right;
-            margin-top: -10px;
+            text-align: center; /* 居中显示更友好 */
+            margin-top: 20px;
             font-size: 0.9em;
+        }
+
+        .forgot-password a {
+            color: var(--primary-color);
+            text-decoration: none;
         }
     </style>
 </head>
@@ -90,11 +94,10 @@
                 <h2>用户登录</h2>
                 
                 <form id="login-form">
-                    
                     <div class="form-group">
                         <label for="username">账号/工号/学号</label>
                         <input type="text" id="username" name="username" required 
-                               placeholder="请输入您的账号（如学号）" autofocus>
+                               placeholder="请输入您的账号" autofocus>
                     </div>
 
                     <div class="form-group">
@@ -114,7 +117,7 @@
 
                 <div class="forgot-password">
                     <a href="forgot_password.html">忘记密码？</a> 
-                    <p style="margin-top: 10px;">新用户请联系教学秘书初始化账号。</p>
+                    <p style="margin-top: 10px; color: #888;">新用户请联系教学秘书初始化账号。</p>
                 </div>
             </div>
         </div>
@@ -125,6 +128,8 @@
             <p>&copy; 2025 成绩管理教学平台. All Rights Reserved.</p>
         </div>
     </footer>
+    
+    <script src="js/db.js"></script>
     
     <script src="js/security.js"></script>
     
