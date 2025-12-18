@@ -873,9 +873,6 @@ async function loadSemesterGrades() {
     const tbody = document.getElementById('gradeTableBody');
     const noDataDiv = document.getElementById('noGradeData');
     
-    console.log('🔍 调试 - 找到成绩记录数量:', scores.length);
-    console.log('🔍 调试 - 成绩记录详情:', scores);
-    
     if (scores.length === 0) {
         tbody.innerHTML = '';
         noDataDiv.style.display = 'block';
@@ -887,9 +884,7 @@ async function loadSemesterGrades() {
     
     for (const score of scores) {
         // ✅ 通过 planId 获取课程信息
-        console.log('🔍 调试 - 正在处理成绩:', score.id, ', planId:', score.planId);
         const plan = await getDataById('plans', score.planId);
-        console.log('🔍 调试 - 找到plan:', plan);
         
         if (!plan) {
             console.warn('⚠️ 警告 - plan不存在，跳过成绩:', score.id);
@@ -897,7 +892,6 @@ async function loadSemesterGrades() {
         }
         
         const course = await getDataById('courses', plan.courseId);
-        console.log('🔍 调试 - 找到course:', course);
         
         if (!course) {
             console.warn('⚠️ 警告 - course不存在，跳过成绩:', score.id);
@@ -927,8 +921,6 @@ async function loadSemesterGrades() {
         `);
     }
     
-    console.log('🔍 调试 - 最终生成的行数:', rows.length);
-    console.log('🔍 调试 - 即将渲染到页面');
     tbody.innerHTML = rows.join('');
 }
 

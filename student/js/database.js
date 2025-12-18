@@ -284,14 +284,23 @@ async function deleteData(storeName, id) {
 // 初始化示例数据（仅用于开发测试）
 async function initSampleData() {
     try {
-        // 检查是否已有数据
+        // 检查是否已有完整数据（同时检查用户和成绩）
         const users = await getAllData('users');
-        if (users.length > 0) {
-            console.log('数据已存在，跳过初始化');
+        const scores = await getAllData('scores');
+        
+        if (users.length > 0 && scores.length > 0) {
+            console.log('✅ 数据已完整初始化，跳过');
+            return;
+        }
+        
+        // 如果只有部分数据，自动补全成绩
+        if (users.length > 0 && scores.length === 0) {
+            console.log('⚠️ 检测到数据不完整，自动补全成绩数据...');
+            await addMissingScores();
             return;
         }
 
-        console.log('初始化示例数据...');
+        console.log('🔄 开始完整初始化示例数据...');
 
         // ==================== 1. 创建班级 ====================
         const class2024 = {
@@ -625,6 +634,64 @@ async function initSampleData() {
     } catch (error) {
         console.error('初始化示例数据失败:', error);
         throw error;
+    }
+}
+
+// 补全缺失的成绩数据
+async function addMissingScores() {
+    try {
+        const plans = await getAllData('plans');
+        const students = await getAllData('users');
+        const student = students.find(u => u.role === 'student' && u.id === 'stu_2024001');
+        
+        if (!student || plans.length === 0) {
+            console.error('❌ 无法补全成绩：缺少学生或开课计划数据');
+            return;
+        }
+        
+        const firstPlan = plans[0];
+        const scoreId = `score_${student.id}_${firstPlan.id}`;
+        
+        // 添加成绩记录
+        const scoreRecord = {
+            id: scoreId,
+            studentId: student.id,
+            planId: firstPlan.id,
+            quiz: 85,
+            midterm: 82,
+            final: 90,
+            total: 88,
+            gpa: 3.8,
+            semester: firstPlan.semester,
+            updatedAt: new Date().toISOString()
+        };
+        await addData('scores', scoreRecord);
+        console.log('✅ 成绩记录已补全:', scoreId);
+        
+        // 添加成绩明细
+        const scoreDetails = [
+            { itemName: '平时出勤', weight: 10, score: 95 },
+            { itemName: '作业1', weight: 15, score: 85 },
+            { itemName: '作业2', weight: 15, score: 90 },
+            { itemName: '期中考试', weight: 20, score: 82 },
+            { itemName: '期末考试', weight: 40, score: 90 }
+        ];
+        
+        for (const detail of scoreDetails) {
+            await addData('score_details', {
+                id: await IdGenerator.generic('detail'),
+                scoreId: scoreId,
+                itemName: detail.itemName,
+                weight: detail.weight,
+                score: detail.score,
+                status: 'completed',
+                submitTime: new Date().toISOString().split('T')[0]
+            });
+        }
+        console.log('✅ 成绩明细已补全');
+        
+    } catch (error) {
+        console.error('❌ 补全成绩失败:', error);
     }
 }
 
