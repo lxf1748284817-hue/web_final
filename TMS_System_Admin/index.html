@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教学管理系统 - 登录</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .login-container {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #1a2530 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .login-header i {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .login-header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            opacity: 0.8;
+        }
+        
+        .login-form {
+            padding: 40px 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+        
+        .login-form input, .form-select {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .login-form input:focus, .form-select:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .checkbox-label input {
+            margin-right: 8px;
+        }
+        
+        .forgot-password {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-block {
+            width: 100%;
+        }
+        
+        .login-footer {
+            text-align: center;
+            padding: 20px 30px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .login-footer a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .login-footer .version {
+            margin-top: 10px;
+            color: #999;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-graduation-cap"></i>
+            <h1>教学管理系统</h1>
+            <p>系统管理端登录</p>
+        </div>
+        
+        <div id="message-area"></div>
+        
+        <form id="login-form" class="login-form">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">角色</label>
+                <select id="role" name="role" class="form-select">
+                    <option value="sysadmin">系统管理员</option>
+                    <option value="admin">教学管理员</option>
+                    <option value="teacher">教师</option>
+                    <option value="student">学生</option>
+                    <option value="guest">游客</option>
+                </select>
+            </div>
+            
+            <div class="form-options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="remember-me">
+                    <span>记住我</span>
+                </label>
+                <a href="#" class="forgot-password" id="forgot-password">忘记密码?</a>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">登录</button>
+        </form>
+        
+        <div class="login-footer">
+            <p>© 2023 教学管理系统 | 仅供演示使用</p>
+            <p class="version">系统管理端 v1.0</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('login-form');
+            const messageArea = document.getElementById('message-area');
+            const forgotPasswordLink = document.getElementById('forgot-password');
+            
+            // 显示消息函数
+            function showMessage(message, type) {
+                messageArea.innerHTML = `
+                    <div class="alert alert-${type}">
+                        ${message}
+                    </div>
+                `;
+                
+                // 5秒后自动消失
+                setTimeout(() => {
+                    messageArea.innerHTML = '';
+                }, 5000);
+            }
+            
+            // 检查是否有记住的用户
+            const rememberedUser = localStorage.getItem('sysadmin_rememberedUser');
+            if (rememberedUser) {
+                document.getElementById('username').value = rememberedUser;
+                document.getElementById('remember-me').checked = true;
+                showMessage(`欢迎回来，${rememberedUser}！`, 'info');
+            }
+            
+            // 登录表单提交
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const role = document.getElementById('role').value;
+                const rememberMe = document.getElementById('remember-me').checked;
+                
+                // 简单验证
+                if (!username || !password) {
+                    showMessage('请输入用户名和密码', 'danger');
+                    return;
+                }
+                
+                // 模拟登录验证 - 系统管理员专用账户
+                if (role === 'sysadmin' && username === 'sysadmin' && password === 'admin123') {
+                    showMessage('登录成功！正在跳转到系统管理端...', 'success');
+                    
+                    // 保存登录状态
+                    if (rememberMe) {
+                        localStorage.setItem('sysadmin_rememberedUser', username);
+                    } else {
+                        localStorage.removeItem('sysadmin_rememberedUser');
+                    }
+                    
+                    // 保存用户信息到sessionStorage
+                    sessionStorage.setItem('sysadmin_user', JSON.stringify({
+                        username: username,
+                        role: role,
+                        loginTime: new Date().toISOString()
+                    }));
+                    
+                    // 跳转到系统管理端
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1500);
+                    
+                } else if (role !== 'sysadmin') {
+                    showMessage('此登录页面仅限系统管理员使用。其他角色请使用主系统登录。', 'danger');
+                } else {
+                    showMessage('用户名或密码错误！请使用 sysadmin/admin123 测试登录', 'danger');
+                }
+            });
+            
+            // 忘记密码功能
+            forgotPasswordLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                showMessage('请联系超级管理员重置密码，或使用默认账户 sysadmin/admin123 登录。', 'info');
+            });
+            
+            // 自动聚焦用户名输入框
+            document.getElementById('username').focus();
+        });
+    </script>
+</body>
+</html>
