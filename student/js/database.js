@@ -9,7 +9,7 @@
  */
 
 const DB_NAME = 'CurriculumDesignDB';  // 统一数据库名称
-const DB_VERSION = 2;  // 升级版本号以触发数据库重建
+const DB_VERSION = 10;  // 升级版本号以触发数据库重建
 let db = null;
 
 // 初始化数据库
@@ -34,7 +34,8 @@ async function initDatabase() {
 
             // 删除旧表（如果存在）
             const storeNames = ['users', 'courses', 'student_courses', 'scores', 'score_details', 
-                              'course_materials', 'assignments', 'assignment_submissions', 'student_tasks'];
+                              'course_materials', 'assignments', 'assignment_submissions', 'student_tasks',
+                              'classes', 'plans'];  // 添加缺失的表
             storeNames.forEach(name => {
                 if (db.objectStoreNames.contains(name)) {
                     db.deleteObjectStore(name);
@@ -284,23 +285,14 @@ async function deleteData(storeName, id) {
 // 初始化示例数据（仅用于开发测试）
 async function initSampleData() {
     try {
-        // 检查是否已有完整数据（同时检查用户和成绩）
+        // 简单检查：如果有用户数据就跳过
         const users = await getAllData('users');
-        const scores = await getAllData('scores');
-        
-        if (users.length > 0 && scores.length > 0) {
-            console.log('✅ 数据已完整初始化，跳过');
-            return;
-        }
-        
-        // 如果只有部分数据，自动补全成绩
-        if (users.length > 0 && scores.length === 0) {
-            console.log('⚠️ 检测到数据不完整，自动补全成绩数据...');
-            await addMissingScores();
+        if (users.length > 0) {
+            console.log('✅ 数据已存在，跳过初始化');
             return;
         }
 
-        console.log('🔄 开始完整初始化示例数据...');
+        console.log('🔄 开始初始化示例数据...');
 
         // ==================== 1. 创建班级 ====================
         const class2024 = {
@@ -450,7 +442,7 @@ async function initSampleData() {
                 schedule: '周二 5-6节, 周四 7-8节',
                 classroom: '实验楼B203',
                 capacity: 80,
-                enrolled: 0,
+                enrolled: 1,  // 已有1名学生
                 status: 'active'
             },
             {
@@ -472,16 +464,29 @@ async function initSampleData() {
             console.log('开课计划创建成功:', plan.id);
         }
 
-        // ==================== 5. 学生选课（选第一门课）====================
+        // ==================== 5. 学生选课 ====================
         const firstPlanId = IdGenerator.plan(semester, 'CS101');
-        const enrollment = {
+        const secondPlanId = IdGenerator.plan(semester, 'CS102');
+        
+        // 选课：数据结构与算法
+        const enrollment1 = {
             id: `sc_${student1.id}_${firstPlanId}`,
             studentId: student1.id,
             planId: firstPlanId,
             enrollDate: new Date().toISOString().split('T')[0],
             status: 'active'
         };
-        await addData('student_courses', enrollment);
+        await addData('student_courses', enrollment1);
+        
+        // 选课：Web前端开发
+        const enrollment2 = {
+            id: `sc_${student1.id}_${secondPlanId}`,
+            studentId: student1.id,
+            planId: secondPlanId,
+            enrollDate: new Date().toISOString().split('T')[0],
+            status: 'active'
+        };
+        await addData('student_courses', enrollment2);
         console.log('选课记录创建成功');
 
         // ==================== 6. 添加课件资料 ====================
@@ -511,7 +516,7 @@ async function initSampleData() {
                 planId: firstPlanId,
                 name: '算法示意图.png',
                 type: 'image',
-                url: 'https://via.placeholder.com/800x600.png?text=Algorithm+Diagram',
+                url: 'https://picsum.photos/800/600?random=1',
                 size: '156KB',
                 uploadDate: '2024-09-05',
                 description: '常用算法示意图'
@@ -524,35 +529,61 @@ async function initSampleData() {
         console.log('课件资料创建成功');
 
         // ==================== 7. 添加作业 ====================
-        const assignments = [
-            {
-                id: await IdGenerator.assignment(firstPlanId),
-                planId: firstPlanId,
-                name: '作业1：链表实现',
-                description: '使用C++或Java实现单链表的基本操作，包括插入、删除、查找等功能。',
-                deadline: '2024-12-25',
-                totalScore: 100,
-                weight: 15,
-                status: 'published',
-                createdAt: '2024-12-01'
-            },
-            {
-                id: await IdGenerator.assignment(firstPlanId),
-                planId: firstPlanId,
-                name: '作业2：二叉树遍历',
-                description: '实现二叉树的前序、中序、后序遍历算法。',
-                deadline: '2024-12-30',
-                totalScore: 100,
-                weight: 15,
-                status: 'published',
-                createdAt: '2024-12-05'
-            }
-        ];
-
-        for (const assignment of assignments) {
-            await addData('assignments', assignment);
-        }
+        // 顺序生成ID，避免并发导致ID重复
+        const assignment1 = {
+            id: await IdGenerator.assignment(firstPlanId),
+            planId: firstPlanId,
+            name: '作业1：链表实现',
+            description: '使用C++或Java实现单链表的基本操作，包括插入、删除、查找等功能。',
+            deadline: '2025-12-10',
+            totalScore: 100,
+            weight: 15,
+            status: 'published',
+            createdAt: '2025-12-01'
+        };
+        await addData('assignments', assignment1);
+        
+        const assignment2 = {
+            id: await IdGenerator.assignment(firstPlanId),
+            planId: firstPlanId,
+            name: '作业2：二叉树遍历',
+            description: '实现二叉树的前序、中序、后序遍历算法。',
+            deadline: '2025-12-25',
+            totalScore: 100,
+            weight: 15,
+            status: 'published',
+            createdAt: '2025-12-05'
+        };
+        await addData('assignments', assignment2);
+        
+        const assignment3 = {
+            id: await IdGenerator.assignment(firstPlanId),
+            planId: firstPlanId,
+            name: '作业3：排序算法实现',
+            description: '实现快速排序和归并排序算法，并进行性能比较分析。',
+            deadline: '2025-12-30',
+            totalScore: 100,
+            weight: 20,
+            status: 'published',
+            createdAt: '2025-12-18'
+        };
+        await addData('assignments', assignment3);
         console.log('作业创建成功');
+
+        // ==================== 7.2. 为Web前端开发课程添加作业 ====================
+        const assignment4 = {
+            id: await IdGenerator.assignment(secondPlanId),
+            planId: secondPlanId,
+            name: '作业1：响应式页面设计',
+            description: '使用HTML5和CSS3实现一个响应式个人主页，要求支持PC端和移动端适配。',
+            deadline: '2025-12-28',
+            totalScore: 100,
+            weight: 30,
+            status: 'published',
+            createdAt: '2025-12-15'
+        };
+        await addData('assignments', assignment4);
+        console.log('Web前端开发作业创建成功');
 
         // ==================== 8. 添加成绩记录 ====================
         const scoreId = IdGenerator.score(student1.id, firstPlanId);

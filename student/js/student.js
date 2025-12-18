@@ -392,6 +392,33 @@ async function loadMyCourses() {
     }
 }
 
+// ✅ 根据作业完成情况计算课程学习进度
+async function calculateCourseProgress(planId) {
+    try {
+        // 获取该课程的所有作业
+        const assignments = await getDataByIndex('assignments', 'planId', planId);
+        
+        if (assignments.length === 0) {
+            return 0; // 没有作业，进度为0
+        }
+        
+        // 获取当前学生的提交记录
+        const allSubmissions = await getDataByIndex('assignment_submissions', 'studentId', currentStudent.id);
+        
+        // 过滤出属于该课程的提交
+        const assignmentIds = assignments.map(a => a.id);
+        const courseSubmissions = allSubmissions.filter(s => assignmentIds.includes(s.assignmentId));
+        
+        // 计算进度：已提交作业数 / 总作业数
+        const progress = Math.floor((courseSubmissions.length / assignments.length) * 100);
+        
+        return progress;
+    } catch (error) {
+        console.error('计算学习进度失败:', error);
+        return 0;
+    }
+}
+
 // 显示我的课程列表
 async function displayMyCourses(filter) {
     const enrollments = await getDataByIndex('student_courses', 'studentId', currentStudent.id);
@@ -413,12 +440,18 @@ async function displayMyCourses(filter) {
         
         const teacher = await getDataById('users', plan.teacherId);
         
+        // ✅ 根据作业完成情况计算学习进度
+        const progress = await calculateCourseProgress(plan.id);
+        
+        // ✅ 如果进度达到100%，自动更新为已完成状态
+        if (progress === 100 && enrollment.status !== 'completed') {
+            enrollment.status = 'completed';
+            await updateData('student_courses', enrollment);
+        }
+        
         // 根据筛选条件过滤
         if (filter === 'ongoing' && enrollment.status !== 'active') continue;
         if (filter === 'completed' && enrollment.status !== 'completed') continue;
-        
-        // 计算学习进度（简化版）
-        const progress = Math.floor(Math.random() * 100); // 实际应从任务完成情况计算
         
         coursesHtml.push(`
             <div class="my-course-item">
@@ -495,6 +528,14 @@ async function openCourseDetailModal(planId) {
     
     document.getElementById('courseDetailTitle').textContent = course.name;
     document.getElementById('courseDetailModal').style.display = 'block';
+    
+    // ✅ 重置标签状态到默认的"课件资料"
+    const tabs = document.querySelectorAll('.detail-tab-btn');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    const defaultTab = document.querySelector('.detail-tab-btn[data-tab="materials"]');
+    if (defaultTab) {
+        defaultTab.classList.add('active');
+    }
     
     // 默认显示课件资料
     await loadCourseMaterials(planId);
@@ -671,13 +712,8 @@ async function loadCourseAssignments(planId) {
                 </div>
                 <div class="assignment-actions">
                     ${!mySubmission && !isOverdue ? `
-                        <button class="btn-primary" onclick="openSubmitModal('${assignment.id}')">
+                        <button class="btn-primary" onclick="submitAssignment('${assignment.id}')">
                             提交作业
-                        </button>
-                    ` : ''}
-                    ${mySubmission && !mySubmission.score ? `
-                        <button class="btn-detail" onclick="openSubmitModal('${assignment.id}', '${mySubmission.id}')">
-                            重新提交
                         </button>
                     ` : ''}
                 </div>
@@ -692,101 +728,53 @@ async function loadCourseAssignments(planId) {
     `;
 }
 
-// 打开作业提交模态框
-let currentAssignmentId = null;
-let currentSubmissionId = null;
-
-function openSubmitModal(assignmentId, submissionId = null) {
-    currentAssignmentId = assignmentId;
-    currentSubmissionId = submissionId;
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.id = 'submitModal';
-    modal.style.display = 'block';
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <span class="close" onclick="closeSubmitModal()">&times;</span>
-            <h2>${submissionId ? '重新提交作业' : '提交作业'}</h2>
-            <div style="margin-top: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500;">作业内容</label>
-                <textarea id="submissionContent" rows="8" 
-                    style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;"
-                    placeholder="请输入作业内容或粘贴作业链接..."></textarea>
-                
-                <div style="margin-top: 16px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 500;">附件上传（可选）</label>
-                    <input type="file" id="submissionFile" 
-                        style="padding: 8px; border: 1px solid #ddd; border-radius: 8px; width: 100%;">
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeSubmitModal()">取消</button>
-                <button class="btn-primary" onclick="submitAssignment()">确认提交</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    modal.onclick = function(event) {
-        if (event.target === modal) {
-            closeSubmitModal();
-        }
-    };
-}
-
-// 关闭提交模态框
-function closeSubmitModal() {
-    const modal = document.getElementById('submitModal');
-    if (modal) {
-        modal.remove();
-    }
-    currentAssignmentId = null;
-    currentSubmissionId = null;
-}
-
-// 提交作业
-async function submitAssignment() {
-    const content = document.getElementById('submissionContent').value.trim();
-    const file = document.getElementById('submissionFile').files[0];
-    
-    if (!content && !file) {
-        alert('请输入作业内容或上传附件！');
-        return;
-    }
-    
+// ✅ 一键提交作业（未逾期才能提交）
+async function submitAssignment(assignmentId) {
     try {
+        // 获取作业信息
+        const assignment = await getDataById('assignments', assignmentId);
+        
+        // 检查是否逾期
+        const isOverdue = new Date(assignment.deadline) < new Date();
+        if (isOverdue) {
+            alert('❌ 作业已逾期，无法提交！');
+            return;
+        }
+        
+        // 检查是否已提交
+        const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignmentId);
+        const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
+        
+        if (mySubmission) {
+            alert('⚠️ 您已提交过该作业！');
+            return;
+        }
+        
+        // 创建提交记录
         const submission = {
-            assignmentId: currentAssignmentId,
+            id: IdGenerator.generic('sub'),
+            assignmentId: assignmentId,
             studentId: currentStudent.id,
-            content: content,
-            fileName: file ? file.name : null,
-            submitTime: new Date().toISOString().split('T')[0],
+            content: '作业已提交',
+            fileName: null,
+            submitTime: new Date().toLocaleString('zh-CN'),
             status: 'submitted',
             score: null,
             feedback: null
         };
         
-        if (currentSubmissionId) {
-            // 重新提交
-            submission.id = currentSubmissionId;
-            await updateData('assignment_submissions', submission);
-        } else {
-            // 新提交 - 生成 ID
-            submission.id = await IdGenerator.generic('sub');
-            await addData('assignment_submissions', submission);
-        }
+        await addData('assignment_submissions', submission);
         
-        alert('作业提交成功！');
-        closeSubmitModal();
+        alert('✅ 作业提交成功！');
         
-        // 重新加载作业列表
+        // 刷新作业列表
         await loadCourseAssignments(currentCourseId);
+        
+        // 刷新我的课程页面（更新进度）
+        await loadMyCourses();
     } catch (error) {
         console.error('提交作业失败:', error);
-        alert('提交失败，请重试');
+        alert('❌ 提交失败，请重试！');
     }
 }
 
