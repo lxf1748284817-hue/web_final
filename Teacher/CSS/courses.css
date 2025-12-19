@@ -198,7 +198,28 @@ body {
 }
 
 /* 响应式设计 */
+/* 响应式横幅图片 */
+@media (max-width: 1200px) {
+    .preview-banner {
+        height: 250px;
+        max-height: 350px;
+    }
+}
+
+@media (max-width: 992px) {
+    .preview-banner {
+        height: 220px;
+        max-height: 300px;
+    }
+}
+
 @media (max-width: 768px) {
+    .preview-banner {
+        height: 180px;
+        max-height: 250px;
+        min-height: 180px;
+    }
+    
     .container {
         flex-direction: column;
     }
@@ -241,6 +262,23 @@ body {
     .content-wrapper {
         padding: 20px;
     }
+}
+
+@media (max-width: 576px) {
+    .preview-banner {
+        height: 150px;
+        max-height: 200px;
+        min-height: 150px;
+    }
+    
+    .preview-banner i {
+        font-size: 1.5rem;
+    }
+}
+
+/* 窗口调整时的动态适配 */
+.preview-modal {
+    transition: all 0.3s ease;
 }
 
 /* 以下开始是您原有的课程管理页面样式 */
@@ -776,7 +814,36 @@ body {
 
 /* 课程预览模态框 */
 .preview-modal {
-    max-width: 800px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 1000px;
+    height: auto;
+    min-height: 600px;
+    position: relative;
+}
+
+.preview-modal .modal-content {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 可拖动模态框 */
+.modal-content {
+    cursor: default;
+    user-select: none;
+}
+
+.modal-header {
+    cursor: move;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header:hover {
+    background-color: #f1f3f4;
 }
 
 .course-preview {
@@ -787,13 +854,35 @@ body {
 }
 
 .preview-banner {
-    height: 200px;
+    height: 300px;
+    min-height: 250px;
+    max-height: 400px;
     background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 2rem;
+    position: relative;
+    overflow: hidden;
+    resize: vertical;
+}
+
+.preview-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+}
+
+.preview-banner img:hover {
+    transform: scale(1.05);
+}
+
+.preview-banner i {
+    z-index: 1;
+    position: relative;
 }
 
 .preview-content {

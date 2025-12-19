@@ -237,8 +237,30 @@ class DataManager {
     // 获取课程的学生成绩数据
     async getCourseGrades(courseId) {
         try {
+            console.log('获取课程成绩数据:', courseId);
             const allGrades = await this.db.getAll(STORAGE_KEYS.GRADES);
-            return allGrades.filter(grade => grade.courseId === courseId);
+            console.log('所有成绩数据:', allGrades);
+            
+            const courseGrades = allGrades.filter(grade => grade.courseId === courseId);
+            console.log('过滤后的课程成绩:', courseGrades);
+            
+            // 返回时移除课程ID前缀，保持原始学号格式
+            const result = courseGrades.map(grade => {
+                // 安全地移除课程ID前缀，避免替换失败
+                const originalId = grade.id.startsWith(`${courseId}_`) 
+                    ? grade.id.replace(`${courseId}_`, '')
+                    : grade.id;
+                
+                console.log('处理成绩数据:', { originalId, gradeId: grade.id, courseId });
+                
+                return {
+                    ...grade,
+                    id: originalId
+                };
+            });
+            
+            console.log('最终返回结果:', result);
+            return result;
         } catch (error) {
             console.error('从IndexedDB获取成绩数据失败:', error);
             return [];
@@ -248,21 +270,42 @@ class DataManager {
     // 保存课程的学生成绩数据
     async saveCourseGrades(courseId, gradesData) {
         try {
+            console.log('=== 开始保存课程成绩 ===');
+            console.log('课程ID:', courseId);
+            console.log('成绩数据:', gradesData);
             await this.db.open();
-            // 删除该课程的旧数据
-            const oldGrades = await this.getCourseGrades(courseId);
+            
+            // 删除该课程的旧数据（使用完整的ID格式）
+            const allGrades = await this.db.getAll(STORAGE_KEYS.GRADES);
+            console.log('数据库中的所有成绩数据:', allGrades);
+            
+            const oldGrades = allGrades.filter(grade => grade.courseId === courseId);
+            console.log('要删除的旧数据:', oldGrades);
+            
             for (const grade of oldGrades) {
+                console.log('删除成绩:', grade.id);
                 await this.db.delete(STORAGE_KEYS.GRADES, grade.id);
             }
+            
             // 添加新数据
+            console.log('开始添加新数据...');
             for (const grade of gradesData) {
                 const gradeWithId = {
                     ...grade,
-                    id: grade.id,  // 直接使用原始学号，不拼接课程ID
+                    id: `${courseId}_${grade.id}`,  // 使用课程ID+学号作为唯一标识
                     courseId: courseId
                 };
+                console.log('保存成绩:', gradeWithId);
                 await this.db.put(STORAGE_KEYS.GRADES, gradeWithId);
             }
+            
+            // 验证保存结果
+            const savedGrades = await this.db.getAll(STORAGE_KEYS.GRADES);
+            const savedCourseGrades = savedGrades.filter(grade => grade.courseId === courseId);
+            console.log('=== 保存后的课程成绩 ===');
+            console.log('保存后的成绩数量:', savedCourseGrades.length);
+            console.log('具体数据:', savedCourseGrades);
+            
             return true;
         } catch (error) {
             console.error('保存到IndexedDB失败:', error);
@@ -336,6 +379,49 @@ class DataManager {
         }
     }
 
+    // 删除作业数据
+    async deleteHomeworkAssignment(assignmentId) {
+        try {
+            await this.db.open();
+            await this.db.delete(STORAGE_KEYS.HOMEWORK_ASSIGNMENTS, assignmentId);
+            return true;
+        } catch (error) {
+            console.error('从IndexedDB删除作业失败:', error);
+            return false;
+        }
+    }
+
+    // 删除考试数据
+    async deleteExamAssignment(assignmentId) {
+        try {
+            await this.db.open();
+            await this.db.delete(STORAGE_KEYS.EXAM_ASSIGNMENTS, assignmentId);
+            return true;
+        } catch (error) {
+            console.error('从IndexedDB删除考试失败:', error);
+            return false;
+        }
+    }
+
+    // 删除指定作业/考试的所有提交记录
+    async deleteSubmissionsByAssignment(assignmentId) {
+        try {
+            await this.db.open();
+            const allSubmissions = await this.db.getAll(STORAGE_KEYS.SUBMISSIONS);
+            
+            // 删除所有匹配的提交记录
+            for (const submission of allSubmissions) {
+                if (submission.assignmentId === assignmentId) {
+                    await this.db.delete(STORAGE_KEYS.SUBMISSIONS, submission.id);
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error('从IndexedDB删除提交记录失败:', error);
+            return false;
+        }
+    }
+
     // ================ 事件管理 ================
 
     triggerCourseDataUpdateEvent() {
@@ -399,12 +485,25 @@ const dataManager = new DataManager();
 async function initData() {
     // 检查是否已经初始化
     if (localStorage.getItem(STORAGE_KEYS.DATA_VERSION) === 'true') {
+        console.log('数据已初始化，跳过模拟数据加载');
         return;
     }
 
-    console.log('初始化模拟数据到数据库...');
+    console.log('首次初始化模拟数据到数据库...');
     
-    // 清空现有数据
+    // 检查数据库是否已有用户数据
+    try {
+        const existingCourses = await dataManager.getCourses();
+        if (existingCourses.length > 0) {
+            console.log('数据库中已有课程数据，跳过模拟数据初始化');
+            localStorage.setItem(STORAGE_KEYS.DATA_VERSION, 'true');
+            return;
+        }
+    } catch (error) {
+        console.error('检查现有数据失败:', error);
+    }
+    
+    // 只有首次初始化时才清空数据
     if (!dataManager.useLocalStorage) {
         try {
             for (const store of Object.keys(DB_CONFIG.stores)) {
@@ -613,7 +712,10 @@ window.gradesManager = {
     getSubmissions: () => dataManager.getSubmissions(),
     saveHomeworkAssignment: (homework) => dataManager.saveHomeworkAssignment(homework),
     saveExamAssignment: (exam) => dataManager.saveExamAssignment(exam),
-    saveSubmission: (submission) => dataManager.saveSubmission(submission)
+    saveSubmission: (submission) => dataManager.saveSubmission(submission),
+    deleteHomeworkAssignment: (assignmentId) => dataManager.deleteHomeworkAssignment(assignmentId),
+    deleteExamAssignment: (assignmentId) => dataManager.deleteExamAssignment(assignmentId),
+    deleteSubmissionsByAssignment: (assignmentId) => dataManager.deleteSubmissionsByAssignment(assignmentId)
 };
 
 // 自动初始化

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作业管理 - 大学成绩管理平台</title>
+    <link rel="stylesheet" href="../CSS/course-content.css">
+    <link rel="stylesheet" href="../CSS/responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边导航栏 -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2><i class="fas fa-graduation-cap"></i> 成绩管理平台</h2>
+                <p>教师端</p>
+            </div>
+            
+            <div class="user-profile">
+                <div class="avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-info">
+                    <h4>张教授</h4>
+                    <p>计算机科学学院</p>
+                </div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> 主面板</a></li>
+                <li><a href="courses.html"><i class="fas fa-book"></i> 课程管理</a></li>
+                <li><a href="course-content.html"><i class="fas fa-file-alt"></i> 课程内容</a></li>
+                <li><a href="exams.html"><i class="fas fa-clipboard-check"></i> 考试管理</a></li>
+                <li><a href="grades.html"><i class="fas fa-chart-line"></i> 成绩录入</a></li>
+                <li class="active"><a href="homework.html"><i class="fas fa-tasks"></i> 作业管理</a></li>
+                <li><a href="javascript:void(0)" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <p>当前学期: 2023-2024学年秋季</p>
+                <p>版本: v2.1.0</p>
+            </div>
+        </nav>
+        
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <header class="header">
+                <h1>作业管理</h1>
+                <div class="header-actions">
+                    <button class="btn-primary" id="newAssignmentBtn">
+                        <i class="fas fa-plus-circle"></i> 新建作业
+                    </button>
+                </div>
+            </header>
+            
+            <div class="course-content-wrapper">
+                <!-- 作业管理页面布局 -->
+                <div class="course-content-page">
+                    <!-- 左侧：作业上传区域 -->
+                    <section class="upload-section">
+                        <div class="upload-section-header">
+                            <h2><i class="fas fa-cloud-upload-alt"></i> 布置作业</h2>
+                        </div>
+                        
+                        <!-- 作业基本信息 -->
+                        <div class="assignment-info">
+                            <div class="form-group">
+                                <label for="assignmentTitle">作业标题 *</label>
+                                <input type="text" id="assignmentTitle" placeholder="请输入作业标题" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="assignmentCourse">选择课程 *</label>
+                                <select id="assignmentCourse" required>
+                                    <option value="">请选择课程...</option>
+                                    <!-- 课程选项将通过JavaScript动态生成 -->
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="dueDate">截止日期</label>
+                                    <input type="date" id="dueDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="maxScore">满分分数</label>
+                                    <input type="number" id="maxScore" min="0" max="100" value="100">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="assignmentDescription">作业描述</label>
+                                <textarea id="assignmentDescription" placeholder="请输入作业要求和说明..." rows="3"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- 文件上传区域 -->
+                        <div class="upload-area" id="homeworkUploadArea">
+                            <i class="fas fa-file-upload"></i>
+                            <p>点击或将作业文件拖拽到此处上传</p>
+                            <p class="upload-hint">支持文档、图片、压缩包等格式，单个文件不超过50MB</p>
+                            <input type="file" id="homeworkFileInput" multiple hidden>
+                        </div>
+                        
+                        <!-- 上传文件列表 -->
+                        <div class="upload-list">
+                            <h3>作业附件</h3>
+                            <div class="upload-list-container" id="homeworkUploadListContainer">
+                                <div class="empty-upload-list">
+                                    <i class="fas fa-folder-open"></i>
+                                    <p>暂无作业附件</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 发布按钮 -->
+                        <div class="upload-actions">
+                            <button class="btn-primary" id="publishAssignmentBtn" disabled>
+                                <i class="fas fa-paper-plane"></i> 发布作业
+                            </button>
+                            <button class="btn-secondary" id="saveDraftBtn">
+                                <i class="fas fa-save"></i> 保存草稿
+                            </button>
+                        </div>
+                    </section>
+                    
+                    <!-- 右侧：已发布作业管理 -->
+                    <section class="materials-section">
+                        <div class="materials-header">
+                            <h2><i class="fas fa-list-check"></i> 已发布作业</h2>
+                            <div class="materials-stats">
+                                <span id="assignmentCount">0</span> 个作业
+                            </div>
+                        </div>
+                        
+                        <!-- 作业筛选和排序 -->
+                        <div class="materials-filter">
+                            <div class="filter-group">
+                                <label for="assignmentSortBy">排序方式：</label>
+                                <select id="assignmentSortBy">
+                                    <option value="date-desc">按发布日期降序</option>
+                                    <option value="date-asc">按发布日期升序</option>
+                                    <option value="dueDate-desc">按截止日期降序</option>
+                                    <option value="dueDate-asc">按截止日期升序</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="assignmentCourseFilter">课程筛选：</label>
+                                <select id="assignmentCourseFilter">
+                                    <option value="all">所有课程</option>
+                                    <!-- 课程选项将通过JavaScript动态生成 -->
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="assignmentStatusFilter">状态筛选：</label>
+                                <select id="assignmentStatusFilter">
+                                    <option value="all">所有状态</option>
+                                    <option value="active">进行中</option>
+                                    <option value="expired">已截止</option>
+                                    <option value="draft">草稿</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 作业列表 -->
+                        <div class="assignments-list" id="assignmentsList">
+                            <!-- 作业卡片将动态添加 -->
+                        </div>
+                        
+                        <!-- 无作业提示 -->
+                        <div class="no-materials" id="noAssignments">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h3>尚未发布任何作业</h3>
+                            <p>点击左侧区域创建并发布您的第一份作业</p>
+                        </div>
+                        
+                        <!-- 批量操作 -->
+                        <div class="batch-actions" id="assignmentBatchActions" style="display: none;">
+                            <div class="batch-info">
+                                <span id="selectedAssignmentCount">0</span> 个作业被选中
+                            </div>
+                            <div class="batch-buttons">
+                                <button class="btn-secondary" id="downloadSubmissionsBtn">
+                                    <i class="fas fa-download"></i> 下载提交
+                                </button>
+                                <button class="btn-secondary delete" id="deleteAssignmentsBtn">
+                                    <i class="fas fa-trash-alt"></i> 批量删除
+                                </button>
+                                <button class="btn-secondary" id="cancelAssignmentSelection">
+                                    <i class="fas fa-times"></i> 取消选择
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            
+            <footer class="footer">
+                <p>© 2023 大学成绩管理平台教师端 | 作业管理模块</p>
+                <p>作业管理: <span id="assignmentStats">0 个进行中, 0 个已截止</span></p>
+            </footer>
+        </main>
+    </div>
+    
+    <!-- 新建作业模态框 -->
+    <div class="modal" id="newAssignmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> 新建作业</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="quick">快速创建</button>
+                    <button class="tab-btn" data-tab="template">从模板创建</button>
+                </div>
+                
+                <div class="tab-content active" id="quickTab">
+                    <p>快速创建一份新的作业，您可以在发布前进行详细编辑。</p>
+                    <button class="btn-primary btn-block" id="createQuickAssignment">
+                        <i class="fas fa-bolt"></i> 开始创建
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="templateTab">
+                    <p>选择作业模板，快速生成标准格式的作业。</p>
+                    <div class="template-list">
+                        <div class="template-item">
+                            <i class="fas fa-file-code"></i>
+                            <span>编程作业模板</span>
+                        </div>
+                        <div class="template-item">
+                            <i class="fas fa-file-alt"></i>
+                            <span>报告作业模板</span>
+                        </div>
+                        <div class="template-item">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>数据分析作业模板</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 作业详情模态框 -->
+    <div class="modal" id="assignmentDetailModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-info-circle"></i> 作业详情</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="assignment-detail">
+                    <div class="detail-header">
+                        <h2 id="detailTitle">作业标题</h2>
+                        <span class="status-badge" id="detailStatus">进行中</span>
+                    </div>
+                    
+                    <div class="detail-info">
+                        <div class="info-item">
+                            <i class="fas fa-book"></i>
+                            <span id="detailCourse">课程名称</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <span id="detailDueDate">截止日期</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-star"></i>
+                            <span id="detailMaxScore">满分</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-users"></i>
+                            <span id="detailSubmissionCount">提交人数</span>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-description">
+                        <h3>作业描述</h3>
+                        <p id="detailDescription">作业详细描述内容...</p>
+                    </div>
+                    
+                    <div class="detail-attachments">
+                        <h3>附件列表</h3>
+                        <div class="attachments-list" id="detailAttachments">
+                            <!-- 附件将在这里显示 -->
+                        </div>
+                    </div>
+                    
+                    <div class="detail-actions">
+                        <button class="btn-primary" id="downloadAllSubmissions">
+                            <i class="fas fa-download"></i> 下载所有提交
+                        </button>
+                        <button class="btn-secondary" id="editAssignment">
+                            <i class="fas fa-edit"></i> 编辑作业
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除确认模态框 -->
+    <div class="modal" id="deleteAssignmentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> 确认删除</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除选中的 <span id="deleteAssignmentCount">0</span> 个作业吗？此操作不可恢复。</p>
+                <div class="modal-actions">
+                    <button class="btn-modal cancel" id="cancelAssignmentDelete">取消</button>
+                    <button class="btn-modal confirm" id="confirmAssignmentDelete">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 上传进度模态框 -->
+    <div class="modal" id="uploadProgressModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cloud-upload-alt"></i> 上传进度</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-progress-container">
+                    <div class="upload-progress-info">
+                        <p>正在上传 <span id="currentUploadFile">文件</span></p>
+                        <p><span id="uploadProgressText">0%</span></p>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="uploadProgressFill"></div>
+                    </div>
+                    <div class="upload-stats">
+                        <p>已上传: <span id="uploadedSize">0 MB</span> / 总计: <span id="totalSize">0 MB</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入必要的JavaScript库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="../JS/data.js"></script>
+    <script src="../JS/data-sync.js"></script>
+
+    <script src="../JS/homework.js"></script>
+</body>
+</html>

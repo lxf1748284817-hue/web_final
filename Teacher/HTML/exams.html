@@ -33,7 +33,7 @@
                 <li><a href="course-content.html"><i class="fas fa-file-alt"></i> 课程内容</a></li>
                 <li class="active"><a href="exams.html"><i class="fas fa-clipboard-check"></i> 考试管理</a></li>
                 <li><a href="grades.html"><i class="fas fa-chart-line"></i> 成绩录入</a></li>
-                <li><a href="#"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+                <li><a href="javascript:void(0)" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
             
             <div class="sidebar-footer">
@@ -122,18 +122,100 @@
     
     <!-- 批改模态框 -->
     <div id="gradingModal" class="modal">
-        <div class="modal-content">
-            <h3>批改作业</h3>
-            <div id="gradingDetails"></div>
-            <div class="grading-form">
-                <input type="number" id="gradeScore" placeholder="分数" min="0" max="100">
-                <textarea id="gradeComment" placeholder="评语" rows="3"></textarea>
-                <button onclick="submitGrade()">提交批改</button>
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header draggable">
+                <h3><i class="fas fa-check-circle"></i> 批改</h3>
+                <div class="modal-controls">
+                    <button class="resize-handle" title="调节大小">
+                        <i class="fas fa-expand-alt"></i>
+                    </button>
+                    <button class="close-modal">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <!-- 学生信息 -->
+                <div class="student-info-section">
+                    <h4><i class="fas fa-user-graduate"></i> 学生信息</h4>
+                    <div class="student-details" id="studentDetails">
+                        <div class="info-row">
+                            <label>姓名:</label>
+                            <span id="studentName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>学号:</label>
+                            <span id="studentId">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>班级:</label>
+                            <span id="studentClass">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>提交时间:</label>
+                            <span id="submitTime">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 作业信息 -->
+                <div class="assignment-info-section">
+                    <h4><i class="fas fa-book"></i> 作业信息</h4>
+                    <div class="assignment-details" id="assignmentDetails">
+                        <div class="info-row">
+                            <label>作业标题:</label>
+                            <span id="assignmentTitle">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>课程名称:</label>
+                            <span id="courseName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>截止时间:</label>
+                            <span id="deadline">-</span>
+                        </div>
+                        <div class="info-row">
+                            <label>满分:</label>
+                            <span id="maxScore">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 作业文件 -->
+                <div class="homework-files-section">
+                    <h4><i class="fas fa-file-alt"></i> 作业文件</h4>
+                    <div class="files-list" id="homeworkFiles">
+                        <!-- 作业文件列表将在这里显示 -->
+                    </div>
+                    <div class="no-files" id="noFiles" style="display: none;">
+                        <i class="fas fa-file"></i>
+                        <p>该学生未上传作业文件</p>
+                    </div>
+                </div>
+                
+                <!-- 评分表单 -->
+                <div class="grading-form-section">
+                    <h4><i class="fas fa-edit"></i> 评分</h4>
+                    <div class="grading-form">
+                        <div class="form-group">
+                            <label for="gradeScore">分数 (0-100)</label>
+                            <input type="number" id="gradeScore" min="0" max="100" placeholder="请输入分数">
+                        </div>
+                        <div class="form-group">
+                            <label for="gradeComment">评语</label>
+                            <textarea id="gradeComment" placeholder="请输入评语和建议..." rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-modal cancel" id="cancelGrading">取消</button>
+                <button class="btn-modal confirm" id="submitGrade">提交批改</button>
             </div>
         </div>
     </div>
     
     <script src="../JS/data.js"></script>
+    <script src="../JS/data-sync.js"></script>
+
     <script src="../JS/exams.js"></script>
 </body>
 </html>

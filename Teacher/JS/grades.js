@@ -4,6 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('=== 成绩页面开始加载 ===');
+    
     // 全局变量
     let currentCourse = null;
     let courses = [];
@@ -24,6 +26,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 课程进度数据
     let courseProgress = {};
     
+    // 检查数据管理器是否可用
+    if (!window.dataManager) {
+        console.error('数据管理器未初始化，等待...');
+        setTimeout(async () => {
+            if (!window.dataManager) {
+                console.error('数据管理器仍然不可用，手动初始化...');
+                // 尝试手动初始化
+                try {
+                    await init();
+                } catch (error) {
+                    console.error('手动初始化失败:', error);
+                }
+            } else {
+                await init();
+            }
+        }, 1000);
+        return;
+    }
+    
+    console.log('数据管理器已就绪，开始初始化...');
+    
     // 初始化
     await init();
     
@@ -35,10 +58,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 初始化课程卡片
             await initCourseCards();
             
-            // 生成模拟数据
+            // 加载课程数据
             if (courses.length > 0) {
-                currentCourse = courses[0].id;
-                generateMockData(courses[0], 42);
+                currentCourse = courses[0].id; // 使用课程代码作为当前课程标识
+                
+                // 检查是否已有学生数据，避免重复生成
+                const existingData = await window.gradesManager.getCourseGrades(currentCourse);
+                if (existingData.length === 0) {
+                    await generateMockData(courses[0], 42);
+                } else {
+                    studentsData = existingData;
+                }
             }
             
             // 初始化事件监听器
@@ -58,23 +88,27 @@ document.addEventListener('DOMContentLoaded', async function() {
                 courses = await window.courseManager.getPublishedCourses();
                 await initCourseCards();
                 
-            // 如果当前课程不存在了，切换到第一个课程
-            if (!courses.find(c => c.id === currentCourse) && courses.length > 0) {
-                currentCourse = courses[0].id;
+                // 如果当前课程不存在了，切换到第一个课程
+                if (!courses.find(c => c.id === currentCourse) && courses.length > 0) {
+                    currentCourse = courses[0].id;
+                }
                 
                 // 检查是否已有学生数据
                 const existingData = await window.gradesManager.getCourseGrades(currentCourse);
                 if (existingData.length === 0) {
-                    await generateMockData(courses[0], 42);
+                    const currentCourseObj = courses.find(c => c.id === currentCourse) || courses[0];
+                    await generateMockData(currentCourseObj, 42);
                 } else {
                     studentsData = existingData;
                 }
                 
-                updateCourseInfo(courses[0]);
+                // 使用当前选中的课程来更新信息
+                const currentCourseObj = courses.find(c => c.id === currentCourse) || courses[0];
+                updateCourseInfo(currentCourseObj);
                 renderTable();
                 updateSummaryStats();
             }
-            });
+            );
         } catch (error) {
             console.error('初始化页面失败:', error);
             showNotification('页面初始化失败，请刷新页面重试', 'error');
@@ -130,10 +164,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             ((sub.assignmentType === 'homework' && homeworkAssignments.some(hw => hw.id === sub.assignmentId && hw.courseId === course.id)) ||
              (sub.assignmentType === 'exam' && examAssignments.some(exam => exam.id === sub.assignmentId && exam.courseId === course.id)))
         ).length;
-        
+
         // 获取该课程的学生数据
         const studentData = await window.gradesManager.getCourseGrades(course.id);
-        const studentCount = studentData.length > 0 ? studentData.length : Math.floor(Math.random() * 30) + 20;
+         const studentCount = studentData.length > 0 ? studentData.length : Math.floor(Math.random() * 30) + 20;
+        
         
         // 计算成绩录入进度（基于现有数据）
         const completedGrades = studentData.filter(student => 
@@ -194,6 +229,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 更新课程信息（基于课程对象）
     async function updateCourseInfo(course) {
+        console.log('更新课程信息:', course.name, course.id);
+        
         // 获取实际的作业和考试数据
         const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
         const examAssignments = await window.gradesManager.getExamAssignments();
@@ -203,13 +240,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         const courseExamCount = examAssignments.filter(exam => exam.courseId === course.id).length;
         const totalAssignments = courseHomeworkCount + courseExamCount;
         
+        // 获取当前课程的学生数据来确保人数正确
+        const currentStudentsData = await window.gradesManager.getCourseGrades(course.id);
+        const studentCount = currentStudentsData.length;
+        
+        console.log('学生人数:', studentCount, '当前studentsData长度:', studentsData.length);
+        
         const courseInfo = document.querySelector('.course-info');
         if (courseInfo) {
             courseInfo.innerHTML = `
                 <h2><i class="fas fa-book"></i> ${course.name}</h2>
                 <p>
                     <i class="fas fa-hashtag"></i> 课程代码: ${course.code} | 
-                    <i class="fas fa-users"></i> 学生人数: ${studentsData.length} | 
+                    <i class="fas fa-users"></i> 学生人数: ${studentCount} | 
                     <i class="fas fa-graduation-cap"></i> 学分: ${course.credit || 3} |
                     <i class="fas fa-tasks"></i> 总任务: ${totalAssignments}次
                 </p>
@@ -217,12 +260,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
         // 更新表格标题
-        document.querySelector('.grades-table-header h2').innerHTML = `
-            <i class="fas fa-table"></i> 学生成绩表 - ${course.name} (${course.code})
-        `;
+        const tableHeader = document.querySelector('.grades-table-header h2');
+        if (tableHeader) {
+            tableHeader.innerHTML = `
+                <i class="fas fa-table"></i> 学生成绩表 - ${course.name} (${course.code})
+            `;
+        }
         
         // 更新页脚
-        document.getElementById('total-students').textContent = studentsData.length;
+        const totalStudentsElement = document.getElementById('total-students');
+        if (totalStudentsElement) {
+            totalStudentsElement.textContent = studentCount;
+        }
     }
     
     // 生成模拟学生数据
@@ -256,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             studentsData.push({
                 id: `${course.code.substring(0,2)}2023${i < 10 ? '000' + i : i < 100 ? '00' + i : i < 1000 ? '0' + i : i}`,
-                name: names[(i-1) % names.length],
+                name: names[(i-1) % names.length], // 直接使用中文，不进行编码
                 attendance: Math.min(attendance, 100),
                 midterm: Math.min(midterm, 100),
                 final: Math.min(final, 100),
@@ -396,15 +445,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 为点击的卡片添加active类
         cardElement.classList.add('active');
         
-        // 更新当前课程
-        currentCourse = courseCode;
-        
         // 根据选择的课程加载对应的学生数据
         loadCourseData(courseCode);
     }
     
     // 加载课程数据
-    function loadCourseData(courseCode) {
+    async function loadCourseData(courseCode) {
         // 清空当前数据
         studentsData = [];
         
@@ -426,20 +472,48 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         const studentCount = courseStudentCounts[course.code] || 42;
         
-        // 生成模拟学生数据
-        generateMockData(course, studentCount);
-        
-        // 重置分页
-        currentPage = 1;
-        
-        // 重新渲染表格
-        renderTable();
-        
-        // 更新统计数据
-        updateSummaryStats();
-        
-        // 显示通知
-        showNotification(`已切换到课程: ${course.name}`, 'success');
+        try {
+            // 首先尝试从IndexedDB加载已保存的数据
+            const savedData = await window.gradesManager.getCourseGrades(course.id);
+            console.log('从IndexedDB加载的数据:', savedData); // 调试：查看实际加载的数据
+            
+            if (savedData && savedData.length > 0) {
+                // 直接使用保存的数据（已移除编码，无需解码）
+                studentsData = savedData;
+                console.log('从IndexedDB加载的数据:', studentsData); // 调试：查看加载的数据
+            } else {
+                // 如果没有保存的数据，生成模拟数据
+                await generateMockData(course, studentCount);
+            }
+            
+            // 重置分页
+            currentPage = 1;
+            
+            // 重新渲染表格
+            renderTable();
+            
+            // 更新统计数据
+            updateSummaryStats();
+            
+            // 显示通知
+            showNotification(`已切换到课程: ${course.name}`, 'success');
+        } catch (error) {
+            console.error('加载课程数据失败:', error);
+            // 出错时生成模拟数据
+            await generateMockData(course, studentCount);
+            
+            // 重置分页
+            currentPage = 1;
+            
+            // 重新渲染表格
+            renderTable();
+            
+            // 更新统计数据
+            updateSummaryStats();
+            
+            // 显示错误通知
+            showNotification('加载课程数据失败，已使用模拟数据', 'warning');
+        }
     }
     
     // 渲染表格
@@ -632,8 +706,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             row.querySelector('td:nth-child(8)').className = `grade-${studentsData[studentIndex].gradeLevel}`;
         }
         
-        // 保存数据到IndexedDB
-        await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
+        // 保存数据到IndexedDB（直接使用中文，无需编码）
+        console.log('=== 开始保存成绩到数据库 ===');
+        console.log('当前课程:', currentCourse);
+        console.log('要保存的数据:', studentsData);
+        
+        const saveResult = await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
+        console.log('保存结果:', saveResult);
         
         // 结束编辑
         endEditRow(row);
@@ -693,13 +772,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // 确认删除学生
-    function deleteStudentConfirmed(studentId) {
+    async function deleteStudentConfirmed(studentId) {
         const studentIndex = studentsData.findIndex(s => s.id === studentId);
         if (studentIndex !== -1) {
             studentsData.splice(studentIndex, 1);
             renderTable();
             updateSummaryStats();
             updateCourseProgress(currentCourse);
+            
+            // 保存数据到IndexedDB
+            await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
+            
             closeAllModals();
             showNotification('学生已删除', 'success');
         }
@@ -923,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // 添加新学生
-    function addNewStudent() {
+    async function addNewStudent() {
         const id = document.getElementById('student-id').value.trim();
         const name = document.getElementById('student-name').value.trim();
         const attendance = parseInt(document.getElementById('add-attendance').value) || 0;
@@ -942,13 +1025,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // 添加新学生
+        // 添加新学生（直接使用中文，无需编码）
         const finalGrade = calculateFinalGrade(attendance, midterm, final, homework);
         const gradeLevel = getGradeLevel(finalGrade);
         
         studentsData.unshift({
             id,
-            name,
+            name: name,
             attendance,
             midterm,
             final,
@@ -967,6 +1050,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateSummaryStats();
         updateCourseProgress(currentCourse);
         
+        // 保存数据到IndexedDB
+        await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
+        
         showNotification('学生添加成功', 'success');
     }
     
@@ -980,11 +1066,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 下载模板
     function downloadTemplate() {
-        // 创建CSV内容
-        const csvContent = "学号,姓名,考勤成绩,期中成绩,期末成绩,作业成绩\n20230001,示例学生,95,85,78,92";
+        // 创建更完整的CSV模板内容，确保中文编码正确
+        const csvContent = `学号,姓名,考勤成绩,期中成绩,期末成绩,作业成绩
+20230001,张三,95,85,78,92
+20230002,李四,88,76,82,90
+20230003,王五,92,80,85,88
+20230004,赵六,85,79,76,84
+20230005,钱七,90,82,88,86
+
+# 说明：
+# 1. 请确保第一行包含表头：学号,姓名,考勤成绩,期中成绩,期末成绩,作业成绩
+# 2. 成绩范围为0-100，空值将自动设为0
+# 3. 学号不能重复，重复的学号将被覆盖
+# 4. 支持CSV和Excel格式文件`;
         
-        // 创建Blob和下载链接
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // 创建Blob和下载链接，确保编码正确
+        const blob = new Blob([csvContent], { 
+            type: 'text/csv;charset=utf-8',
+            endings: 'native'
+        });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
@@ -994,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         link.click();
         document.body.removeChild(link);
         
-        showNotification('模板下载成功', 'success');
+        showNotification('模板下载成功，请按照说明填写数据', 'success');
     }
     
     // 处理文件选择
@@ -1029,174 +1129,475 @@ document.addEventListener('DOMContentLoaded', async function() {
         `;
         fileInfo.classList.add('active');
         
-        // 解析文件（这里简化处理，实际项目中应使用专门的库如SheetJS）
+        // 解析文件
         if (file.name.endsWith('.csv')) {
             parseCSV(file);
+        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+            parseExcel(file);
         } else {
-            showNotification('Excel文件解析需要额外库支持，这里仅演示CSV导入', 'warning');
-            // 模拟数据预览
-            simulatePreviewData();
+            showNotification('请上传CSV或Excel文件', 'error');
         }
     }
     
-    // 解析CSV文件（简化版）
+    // 解析CSV文件（完整版）
     function parseCSV(file) {
         const reader = new FileReader();
         
         reader.onload = function(e) {
-            const content = e.target.result;
-            // 简单解析CSV（实际项目中应使用更健壮的CSV解析器）
-            const lines = content.split('\n');
-            const headers = lines[0].split(',');
-            
-            // 验证CSV格式
-            if (headers.length < 6) {
-                showNotification('CSV文件格式不正确，请使用提供的模板', 'error');
-                return;
-            }
-            
-            // 解析数据
-            const data = [];
-            for (let i = 1; i < lines.length && i < 6; i++) { // 只解析前5行作为预览
-                if (lines[i].trim()) {
-                    const values = lines[i].split(',');
-                    if (values.length >= 6) {
-                        data.push({
-                            id: values[0],
-                            name: values[1],
-                            attendance: values[2],
-                            midterm: values[3],
-                            final: values[4],
-                            homework: values[5]
-                        });
+            try {
+                let content = e.target.result;
+                
+                // 检测并移除BOM头（如果有的话）
+                if (content.charCodeAt(0) === 0xFEFF) {
+                    content = content.slice(1);
+                }
+                
+                // 确保使用UTF-8编码解析
+                const decoder = new TextDecoder('utf-8');
+                if (e.target.result instanceof ArrayBuffer) {
+                    content = decoder.decode(e.target.result);
+                }
+                
+                // 使用更健壮的CSV解析，支持中文
+                const lines = content.split('\n').filter(line => line.trim());
+                
+                if (lines.length < 2) {
+                    showNotification('CSV文件为空或格式不正确', 'error');
+                    return;
+                }
+                
+                // 改进的CSV解析，处理包含逗号的中文内容
+                const headers = parseCSVLine(lines[0]);
+                
+                // 验证CSV格式
+                const requiredHeaders = ['学号', '姓名', '考勤成绩', '期中成绩', '期末成绩', '作业成绩'];
+                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                
+                if (missingHeaders.length > 0) {
+                    showNotification(`CSV文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // 解析数据
+                const data = [];
+                const errors = [];
+                
+                for (let i = 1; i < Math.min(lines.length, 10); i++) { // 最多解析10行作为预览
+                    if (lines[i].trim()) {
+                        const values = parseCSVLine(lines[i]);
+                        
+                        if (values.length >= 6) {
+                            // 验证数据
+                            const validation = validateStudentData({
+                                id: values[0],
+                                name: values[1],
+                                attendance: values[2],
+                                midterm: values[3],
+                                final: values[4],
+                                homework: values[5]
+                            });
+                            
+                            if (validation.isValid) {
+                                // 直接使用验证后的数据，无需编码
+                                data.push(validation.data);
+                            } else {
+                                errors.push(`第${i+1}行: ${validation.errors.join(', ')}`);
+                            }
+                        }
                     }
                 }
+                
+                console.log('CSV解析后的数据:', data); // 调试：查看解析后的数据
+                
+                // 显示预览和错误信息
+                showPreview(data, errors);
+                
+                // 如果有可导入的数据，启用导入按钮
+                if (data.length > 0) {
+                    document.getElementById('confirm-import').disabled = false;
+                    // 存储解析的数据用于实际导入
+                    window.importData = { data, fileContent: content };
+                } else {
+                    document.getElementById('confirm-import').disabled = true;
+                    showNotification('没有有效的可导入数据', 'warning');
+                }
+                
+                if (errors.length > 0) {
+                    showNotification(`发现 ${errors.length} 条数据错误，请检查后重新导入`, 'warning');
+                }
+                
+            } catch (error) {
+                console.error('CSV解析错误:', error);
+                showNotification('CSV文件解析失败，请检查文件格式和编码', 'error');
             }
-            
-            // 显示预览
-            showPreview(data);
-            document.getElementById('confirm-import').disabled = false;
         };
         
-        reader.readAsText(file);
+        reader.onerror = function() {
+            showNotification('文件读取失败，请重试', 'error');
+        };
+        
+        // 尝试不同的编码
+        // 强制使用UTF-8编码读取文件
+        reader.readAsText(file, 'UTF-8');
     }
     
-    // 模拟预览数据
-    function simulatePreviewData() {
-        const data = [
-            { id: '20230025', name: '新学生一', attendance: 90, midterm: 80, final: 75, homework: 85 },
-            { id: '20230026', name: '新学生二', attendance: 95, midterm: 70, final: 85, homework: 90 },
-            { id: '20230027', name: '新学生三', attendance: 88, midterm: 75, final: 80, homework: 82 }
+    // 改进的CSV行解析函数，处理中文和逗号
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        
+        result.push(current.trim());
+        return result;
+    }
+    
+    // 解析Excel文件
+    function parseExcel(file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                // 改进Excel解析，添加编码选项
+                const workbook = XLSX.read(data, { 
+                    type: 'array',
+                    cellDates: true,
+                    cellText: true,
+                    cellNF: false,
+                    codepage: 65001 // UTF-8编码
+                });
+                
+                // 获取第一个工作表
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // 转换为JSON，改进中文处理
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                    header: 1,
+                    defval: '',
+                    blankrows: false,
+                    raw: false,
+                    dateNF: 'yyyy-mm-dd'
+                });
+                
+                if (jsonData.length < 2) {
+                    showNotification('Excel文件为空或格式不正确', 'error');
+                    return;
+                }
+                
+                const headers = jsonData[0].map(h => h ? h.toString().trim() : '');
+                
+                // 验证Excel格式
+                const requiredHeaders = ['学号', '姓名', '考勤成绩', '期中成绩', '期末成绩', '作业成绩'];
+                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                
+                if (missingHeaders.length > 0) {
+                    showNotification(`Excel文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');
+                    return;
+                }
+                
+                // 解析数据
+                const dataRows = [];
+                const errors = [];
+                
+                for (let i = 1; i < Math.min(jsonData.length, 11); i++) { // 最多解析10行作为预览
+                    const row = jsonData[i];
+                    if (row && row.length >= 6) {
+                        // 创建数据对象，改进中文处理
+                        const studentData = {};
+                        headers.forEach((header, index) => {
+                            if (header && row[index] !== undefined) {
+                                let cellValue = row[index];
+                                if (cellValue === null || cellValue === undefined) {
+                                    studentData[header] = '';
+                                } else {
+                                    // 处理不同类型的数据
+                                    if (typeof cellValue === 'object' && cellValue.t) {
+                                        // 处理Excel日期格式
+                                        if (cellValue.t === 'd') {
+                                            studentData[header] = new Date(cellValue.v).toLocaleDateString();
+                                        } else {
+                                            studentData[header] = cellValue.v !== undefined ? cellValue.v.toString().trim() : '';
+                                        }
+                                    } else {
+                                        studentData[header] = cellValue.toString().trim();
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // 验证数据
+                        const validation = validateStudentData({
+                            id: studentData['学号'] || '',
+                            name: studentData['姓名'] || '',
+                            attendance: studentData['考勤成绩'] || '',
+                            midterm: studentData['期中成绩'] || '',
+                            final: studentData['期末成绩'] || '',
+                            homework: studentData['作业成绩'] || ''
+                        });
+                        
+                        if (validation.isValid) {
+                            // 直接使用验证后的数据，无需编码
+                            dataRows.push(validation.data);
+                        } else {
+                            errors.push(`第${i+1}行: ${validation.errors.join(', ')}`);
+                        }
+                    }
+                }
+                
+                // 显示预览
+                showPreview(dataRows, errors);
+                
+                // 存储数据用于导入
+                if (dataRows.length > 0) {
+                    document.getElementById('confirm-import').disabled = false;
+                    window.importData = { data: dataRows, file: file, fileType: 'excel' };
+                } else {
+                    document.getElementById('confirm-import').disabled = true;
+                    showNotification('没有有效的可导入数据', 'warning');
+                }
+                
+                if (errors.length > 0) {
+                    showNotification(`发现 ${errors.length} 条数据错误，请检查后重新导入`, 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Excel解析错误:', error);
+                showNotification('Excel文件解析失败，请检查文件格式和编码', 'error');
+            }
+        };
+        
+        reader.onerror = function() {
+            showNotification('文件读取失败，请重试', 'error');
+        };
+        
+        reader.readAsArrayBuffer(file);
+    }
+    
+    // 安全解码URI组件函数
+    function safeDecodeURIComponent(str) {
+        try {
+            // 如果是已编码的字符串，尝试解码
+            if (str && typeof str === 'string' && str.includes('%')) {
+                return decodeURIComponent(str);
+            }
+            // 如果不是编码字符串，直接返回
+            return str;
+        } catch (error) {
+            console.warn('解码失败，返回原始字符串:', str);
+            return str;
+        }
+    }
+
+    // 数据验证函数
+    function validateStudentData(student) {
+        const errors = [];
+        const validatedData = {};
+        
+        // 学号验证
+        if (!student.id || student.id.trim().length === 0) {
+            errors.push('学号不能为空');
+        } else {
+            validatedData.id = student.id.trim();
+        }
+        
+        // 姓名验证
+        if (!student.name || student.name.trim().length === 0) {
+            errors.push('姓名不能为空');
+        } else {
+            validatedData.name = student.name.trim();
+        }
+        
+        // 成绩验证（0-100之间的数字）
+        const scores = [
+            { field: 'attendance', name: '考勤成绩' },
+            { field: 'midterm', name: '期中成绩' },
+            { field: 'final', name: '期末成绩' },
+            { field: 'homework', name: '作业成绩' }
         ];
         
-        showPreview(data);
-        document.getElementById('confirm-import').disabled = false;
+        scores.forEach(({ field, name }) => {
+            const value = student[field];
+            if (value === '' || value === null || value === undefined) {
+                validatedData[field] = 0; // 空值默认为0
+            } else {
+                const numValue = parseInt(value);
+                if (isNaN(numValue)) {
+                    errors.push(`${name}必须是数字`);
+                } else if (numValue < 0 || numValue > 100) {
+                    errors.push(`${name}必须在0-100之间`);
+                } else {
+                    validatedData[field] = numValue;
+                }
+            }
+        });
+        
+        return {
+            isValid: errors.length === 0,
+            data: validatedData,
+            errors: errors
+        };
     }
     
     // 显示预览
-    function showPreview(data) {
+    function showPreview(data, errors = []) {
         const container = document.getElementById('preview-container');
         
-        if (data.length === 0) {
+        if (data.length === 0 && errors.length === 0) {
             container.innerHTML = '<p style="text-align: center; padding: 2rem; color: #999;">没有可预览的数据</p>';
             return;
         }
         
-        let html = `
-            <table class="preview-table">
-                <thead>
-                    <tr>
-                        <th>学号</th>
-                        <th>姓名</th>
-                        <th>考勤成绩</th>
-                        <th>期中成绩</th>
-                        <th>期末成绩</th>
-                        <th>作业成绩</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
+        let html = '';
         
-        data.forEach(item => {
+        // 显示错误信息
+        if (errors.length > 0) {
             html += `
-                <tr>
-                    <td>${item.id}</td>
-                    <td>${item.name}</td>
-                    <td>${item.attendance}</td>
-                    <td>${item.midterm}</td>
-                    <td>${item.final}</td>
-                    <td>${item.homework}</td>
-                </tr>
+                <div class="preview-errors">
+                    <h5><i class="fas fa-exclamation-triangle"></i> 数据验证错误</h5>
+                    <div class="error-list">
+                        ${errors.slice(0, 3).map(error => `<div class="error-item">${error}</div>`).join('')}
+                        ${errors.length > 3 ? `<div class="error-more">...还有 ${errors.length - 3} 条错误</div>` : ''}
+                    </div>
+                </div>
             `;
-        });
+        }
         
-        html += `
-                </tbody>
-            </table>
-            <p style="padding: 1rem; font-size: 0.9rem; color: #666;">
-                共 ${data.length} 条记录（预览最多显示5条）
-            </p>
-        `;
+        // 显示数据预览
+        if (data.length > 0) {
+            html += `
+                <table class="preview-table">
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>姓名</th>
+                            <th>考勤成绩</th>
+                            <th>期中成绩</th>
+                            <th>期末成绩</th>
+                            <th>作业成绩</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            data.forEach((item, index) => {
+                html += `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td>${item.name}</td>
+                        <td>${item.attendance}</td>
+                        <td>${item.midterm}</td>
+                        <td>${item.final}</td>
+                        <td>${item.homework}</td>
+                        <td><span class="status-badge valid">有效</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                <p style="padding: 1rem; font-size: 0.9rem; color: #666;">
+                    共发现 ${data.length} 条有效记录，${errors.length} 条错误记录
+                </p>
+            `;
+        }
         
         container.innerHTML = html;
     }
     
     // 确认导入
     async function confirmImport() {
-        // 这里模拟导入数据（实际项目中应从解析的文件中获取数据）
-        const newStudents = [
-            {
-                id: 'CS20230025',
-                name: '新学生一',
-                attendance: 90,
-                midterm: 80,
-                final: 75,
-                homework: 85,
-                finalGrade: calculateFinalGrade(90, 80, 75, 85),
-                gradeLevel: getGradeLevel(calculateFinalGrade(90, 80, 75, 85))
-            },
-            {
-                id: 'CS20230026',
-                name: '新学生二',
-                attendance: 95,
-                midterm: 70,
-                final: 85,
-                homework: 90,
-                finalGrade: calculateFinalGrade(95, 70, 85, 90),
-                gradeLevel: getGradeLevel(calculateFinalGrade(95, 70, 85, 90))
-            }
-        ];
+        if (!window.importData) {
+            showNotification('没有可导入的数据', 'error');
+            return;
+        }
         
-        // 检查重复学号
-        const duplicateIds = newStudents.filter(newStudent => 
-            studentsData.some(existingStudent => existingStudent.id === newStudent.id)
-        ).map(s => s.id);
-        
-        if (duplicateIds.length > 0) {
-            if (!confirm(`以下学号已存在: ${duplicateIds.join(', ')}。是否覆盖？`)) {
+        try {
+            // 直接使用预览阶段已经解析好的数据
+            let newStudents = window.importData.data || [];
+            let duplicateIds = [];
+            
+            // 检查重复数据
+            newStudents = newStudents.filter(student => {
+                if (studentsData.some(s => s.id === student.id)) {
+                    duplicateIds.push(student.id);
+                    return false;
+                }
+                return true;
+            });
+            
+            if (newStudents.length === 0 && duplicateIds.length === 0) {
+                showNotification('没有有效的可导入数据', 'warning');
                 return;
             }
             
-        // 删除重复的记录
-        studentsData = studentsData.filter(student => !duplicateIds.includes(student.id));
-    }
-    
-    // 添加新学生
-    studentsData.push(...newStudents);
-    
-        // 保存数据到IndexedDB
-        await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
-        
-        // 关闭模态框
-        closeAllModals();
-        
-        // 重新渲染表格
-        currentPage = 1;
-        renderTable();
-        updateSummaryStats();
-        updateCourseProgress(currentCourse);
-        
-        showNotification(`成功导入 ${newStudents.length} 条学生记录`, 'success');
+            // 处理重复数据
+            let shouldProceed = true;
+            if (duplicateIds.length > 0) {
+                shouldProceed = confirm(`以下学号已存在: ${duplicateIds.slice(0, 5).join(', ')}${duplicateIds.length > 5 ? '...' : ''}。是否覆盖？`);
+                if (!shouldProceed) {
+                    return;
+                }
+                
+                // 删除重复的记录
+                studentsData = studentsData.filter(student => !duplicateIds.includes(student.id));
+            }
+            
+            // 添加新学生并计算总评成绩
+            const studentsWithGrades = newStudents.map(student => ({
+                ...student,
+                finalGrade: calculateFinalGrade(student.attendance, student.midterm, student.final, student.homework),
+                gradeLevel: getGradeLevel(calculateFinalGrade(student.attendance, student.midterm, student.final, student.homework))
+            }));
+            
+            // 直接使用数据，无需编码
+            studentsData.push(...studentsWithGrades);
+            
+            console.log('保存到IndexedDB的数据:', studentsData); // 调试：查看保存的数据
+            
+            // 保存数据到IndexedDB
+            await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
+            
+            // 关闭模态框
+            closeAllModals();
+            
+            // 重新渲染表格和更新统计信息
+            currentPage = 1;
+            renderTable();
+            updateSummaryStats();
+            updateCourseProgress(currentCourse);
+            
+            // 显示导入结果
+            let message = `成功导入 ${newStudents.length} 条学生记录`;
+            if (duplicateIds.length > 0) {
+                message += `，覆盖 ${duplicateIds.length} 条重复记录`;
+            }
+            // 由于预览阶段已经过滤了错误数据，这里没有错误记录需要处理
+            
+            showNotification(message, 'success');
+            
+            // 清理临时数据
+            window.importData = null;
+            
+        } catch (error) {
+            console.error('导入失败:', error);
+            showNotification('导入失败: ' + error.message, 'error');
+        }
     }
     
     // 导出成绩
@@ -1206,15 +1607,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // 创建CSV内容
-        let csvContent = "学号,姓名,考勤成绩,期中成绩,期末成绩,作业成绩,总评成绩,等级\n";
+        // 创建CSV内容，添加BOM头确保中文兼容
+        const BOM = '\uFEFF';
+        let csvContent = BOM + "学号,姓名,考勤成绩,期中成绩,期末成绩,作业成绩,总评成绩,等级\n";
         
         studentsData.forEach(student => {
             csvContent += `${student.id},${student.name},${student.attendance},${student.midterm},${student.final},${student.homework},${student.finalGrade},${student.gradeLevel}\n`;
         });
         
-        // 创建Blob和下载链接
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // 创建Blob和下载链接，确保编码正确
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);

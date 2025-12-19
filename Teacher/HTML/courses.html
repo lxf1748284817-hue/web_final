@@ -36,7 +36,7 @@
                 <li><a href="course-content.html"><i class="fas fa-file-alt"></i> 课程内容</a></li>
                 <li><a href="exams.html"><i class="fas fa-clipboard-check"></i> 考试管理</a></li>
                 <li><a href="grades.html"><i class="fas fa-chart-line"></i> 成绩录入</a></li>
-                <li><a href="#"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
+                <li><a href="javascript:void(0)" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 退出登录</a></li>
             </ul>
             
             <div class="sidebar-footer">
@@ -176,17 +176,13 @@
                     
                     <div class="form-section">
                         <h3>课程设置</h3>
-                        <div class="form-group">
-                            <label for="courseStatus">课程状态</label>
-                            <select id="courseStatus">
-                                <option value="draft">草稿</option>
-                                <option value="published">已发布</option>
-                                <option value="archived">已归档</option>
-                            </select>
-                        </div>
                         <div class="checkbox-group">
                             <input type="checkbox" id="allowPreview">
                             <label for="allowPreview">允许学生预览课程内容</label>
+                        </div>
+                        <div class="form-hint">
+                            <i class="fas fa-info-circle"></i>
+                            <span>新创建的课程默认为草稿状态，可在课程列表中发布</span>
                         </div>
                     </div>
                     
@@ -216,6 +212,8 @@
     </div>
     
     <script src="../JS/data.js"></script>
+    <script src="../JS/data-sync.js"></script>
+
     <script src="../JS/courses.js"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // 课程管理功能 (IndexedDB 兼容版)
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
     // 初始化课程数据
     let courses = [];
     let currentEditCourseId = null;
@@ -29,19 +29,44 @@ document.addEventListener('DOMContentLoaded', async function() {
     const galleryImagesInput = document.getElementById('galleryImages');
     const galleryPreview = document.getElementById('galleryPreview');
     
+    // 模态框关闭函数
+    function closeAllModals() {
+        courseDetailModal.classList.remove('active');
+        coursePreviewModal.classList.remove('active');
+    }
+    
+    function closePreviewModal() {
+        coursePreviewModal.classList.remove('active');
+    }
+    
     let bannerImage = null;
     let galleryImages = [];
     
     // 初始化页面
-    await initPage();
+    initPage();
     
     async function initPage() {
         try {
+            // 确保数据管理器已初始化
+            if (!window.courseManager) {
+                console.warn('数据管理器未初始化，等待DOM加载完成');
+                setTimeout(initPage, 100);
+                return;
+            }
+            
             // 从IndexedDB加载课程数据
             courses = await window.courseManager.getCourses();
+            console.log('从IndexedDB加载课程数据:', courses.length, '门课程');
+            
+            // 如果本地没有课程数据，显示空状态，但不触发数据重置
+            if (courses.length === 0) {
+                console.log('IndexedDB中无课程数据，显示空状态');
+                // 不触发数据重新初始化，避免丢失用户数据
+                // 用户可以通过点击"创建第一门课程"按钮来开始添加课程
+            }
             
             // 渲染课程列表
-            renderCourses(courses);
+            await renderCourses(courses);
             
             // 更新空状态显示
             updateEmptyState();
@@ -55,19 +80,48 @@ document.addEventListener('DOMContentLoaded', async function() {
             // 设置拖拽排序
             setupDragAndDrop();
             
-            // 监听数据更新事件
-            window.addEventListener('courseDataUpdated', async function() {
-                courses = await window.courseManager.getCourses();
+    // 监听数据更新事件（仅在其他页面修改数据时刷新）
+    window.addEventListener('courseDataUpdated', function(event) {
+        console.log('检测到课程数据更新事件');
+        // 只有在事件来自其他页面时才重新加载数据
+        if (event.detail && event.detail.source !== 'courses') {
+            window.courseManager.getCourses().then(updatedCourses => {
+                courses = updatedCourses;
+                
+                // 根据当前筛选条件重新渲染
+                const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+                const searchTerm = document.getElementById('courseSearch')?.value.trim().toLowerCase() || '';
+                
+                filterCourses(activeFilter, searchTerm);
+                updateEmptyState();
+            });
+        }
+    });
+            
+    // 监听页面可见性变化，确保数据同步
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('页面重新可见，刷新课程数据');
+            window.courseManager.getCourses().then(updatedCourses => {
+                courses = updatedCourses;
                 renderCourses(courses);
                 updateEmptyState();
             });
+        }
+    });
+            
+            // 监听页面关闭前保存数据
+            window.addEventListener('beforeunload', function() {
+                console.log('页面即将关闭，确保数据已保存');
+            });
+            
         } catch (error) {
             console.error('初始化页面失败:', error);
             showNotification('页面初始化失败，请刷新页面重试', 'error');
         }
     }
     
-    function renderCourses(coursesToRender) {
+    async function renderCourses(coursesToRender) {
         coursesList.innerHTML = '';
         
         if (coursesToRender.length === 0) {
@@ -77,13 +131,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         emptyState.classList.remove('show');
         
-        coursesToRender.forEach(course => {
-            const courseCard = createCourseCard(course);
+        // 异步创建课程卡片
+        for (const course of coursesToRender) {
+            const courseCard = await createCourseCard(course);
             coursesList.appendChild(courseCard);
-        });
+        }
     }
     
-    function createCourseCard(course) {
+    async function createCourseCard(course) {
         const card = document.createElement('div');
         card.className = 'course-card-list';
         card.dataset.id = course.id;
@@ -102,9 +157,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             statusClass = 'archived';
         }
         
-        // 学生人数和作业数量（模拟数据）
-        const studentCount = Math.floor(Math.random() * 30) + 20;
-        const assignmentCount = Math.floor(Math.random() * 5) + 1;
+        // 从数据库获取真实的作业和考试数量
+        let homeworkCount = 0;
+        let examCount = 0;
+        
+        try {
+            if (window.gradesManager) {
+                const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
+                const examAssignments = await window.gradesManager.getExamAssignments();
+                homeworkCount = homeworkAssignments.filter(hw => hw.courseId === course.id).length;
+                examCount = examAssignments.filter(exam => exam.courseId === course.id).length;
+            }
+        } catch (error) {
+            console.warn('获取作业考试数据失败:', error);
+        }
+        
+        const totalAssignments = homeworkCount + examCount;
+        const studentCount = Math.floor(Math.random() * 30) + 20; // 学生人数保持模拟
         
         card.innerHTML = `
             <div class="course-card-header">
@@ -126,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
                 <div class="course-meta-item">
                     <span class="course-meta-label">作业</span>
-                    <span class="course-meta-value">${assignmentCount}</span>
+                    <span class="course-meta-value">${totalAssignments}</span>
                 </div>
                 <div class="course-meta-item">
                     <span class="course-meta-label">学期</span>
@@ -158,6 +227,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     
+
+    
     function setupEventListeners() {
         // 添加课程按钮
         if (addCourseBtn) addCourseBtn.addEventListener('click', openCourseModal);
@@ -166,7 +237,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 关闭模态框按钮
         if (closeModalBtns.length > 0) {
             closeModalBtns.forEach(btn => {
-                btn.addEventListener('click', closeAllModals);
+                // 预览模态框的关闭按钮使用独立的关闭函数
+                if (btn.closest('#coursePreviewModal')) {
+                    btn.addEventListener('click', closePreviewModal);
+                } else {
+                    btn.addEventListener('click', closeAllModals);
+                }
             });
         }
         
@@ -176,7 +252,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 closeAllModals();
             }
             if (event.target === coursePreviewModal) {
-                closeAllModals();
+                closePreviewModal();
             }
         });
         
@@ -193,11 +269,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             });
         });
         
-        // 搜索功能
+    // 搜索功能
+    if (courseSearch) {
         courseSearch.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
-            filterCourses('all', searchTerm);
+            const searchTerm = this.value.trim().toLowerCase();
+            if (searchTerm) {
+                filterCourses('all', searchTerm);
+            } else {
+                // 如果搜索框为空，显示所有课程
+                filterCourses('all');
+            }
         });
+        
+        // 添加键盘事件支持
+        courseSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const searchTerm = this.value.trim().toLowerCase();
+                if (searchTerm) {
+                    filterCourses('all', searchTerm);
+                }
+            }
+        });
+    }
         
         // 课程描述字数统计
         courseDescription.addEventListener('input', function() {
@@ -213,12 +306,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
         
-        // 表单提交
+        // 表单提交 - 只处理表单直接提交，避免与按钮点击重复
         courseForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            // 表单提交时使用表单中的状态，不单独处理
-            const currentStatus = document.getElementById('courseStatus').value;
-            saveCourse(currentStatus);
+            // 只有当不是通过保存草稿或发布按钮提交时才执行
+            // 这样可以避免重复保存
+            const target = e.submitter || e.originalTarget || document.activeElement;
+            if (!target || (!target.id.includes('saveDraftBtn') && !target.id.includes('publishCourseBtn'))) {
+                saveCourse('draft');
+            }
         });
         
         // 预览课程按钮
@@ -498,7 +594,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('courseClass').value = course.class;
         document.getElementById('courseSemester').value = course.semester;
         document.getElementById('courseDescription').value = course.description;
-        document.getElementById('courseStatus').value = course.status;
         document.getElementById('allowPreview').checked = course.allowPreview || false;
         
         // 更新字数统计
@@ -542,15 +637,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         galleryPreview.innerHTML = '';
         descCharCount.textContent = '0';
         descCharCount.style.color = '#95a5a6';
-        document.getElementById('courseStatus').value = 'draft';
     }
     
-    function closeAllModals() {
-        courseDetailModal.classList.remove('active');
-        coursePreviewModal.classList.remove('active');
-    }
+
     
-    function filterCourses(filter, searchTerm = '') {
+    async function filterCourses(filter, searchTerm = '') {
         let filteredCourses = courses;
         
         // 按状态筛选
@@ -561,16 +652,73 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 按搜索词筛选
         if (searchTerm) {
             filteredCourses = filteredCourses.filter(course => 
-                course.name.toLowerCase().includes(searchTerm) || 
-                course.code.toLowerCase().includes(searchTerm) ||
-                course.class.toLowerCase().includes(searchTerm)
+                (course.name && course.name.toLowerCase().includes(searchTerm)) || 
+                (course.code && course.code.toLowerCase().includes(searchTerm)) ||
+                (course.class && course.class.toLowerCase().includes(searchTerm))
             );
         }
         
-        renderCourses(filteredCourses);
+        await renderCourses(filteredCourses);
+        
+        // 如果没有搜索结果，显示提示
+        if (searchTerm && filteredCourses.length === 0) {
+            showNoResultsMessage(searchTerm);
+        }
     }
     
-    async function saveCourse(status = null) {
+    function showNoResultsMessage(searchTerm) {
+        // 移除现有的无结果消息
+        const existingMessage = document.getElementById('noResultsMessage');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // 创建无结果消息
+        const message = document.createElement('div');
+        message.id = 'noResultsMessage';
+        message.className = 'no-results-message';
+        message.innerHTML = `
+            <i class="fas fa-search"></i>
+            <h3>没有找到匹配的课程</h3>
+            <p>搜索词："${searchTerm}"</p>
+            <p>尝试使用不同的关键词或检查拼写</p>
+        `;
+        
+        // 添加到课程列表区域
+        coursesList.appendChild(message);
+        
+        // 添加CSS样式（如果尚未添加）
+        if (!document.querySelector('#no-results-styles')) {
+            const style = document.createElement('style');
+            style.id = 'no-results-styles';
+            style.textContent = `
+                .no-results-message {
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: #7f8c8d;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                }
+                .no-results-message i {
+                    font-size: 3rem;
+                    margin-bottom: 15px;
+                    color: #bdc3c7;
+                }
+                .no-results-message h3 {
+                    margin: 0 0 10px 0;
+                    color: #2c3e50;
+                }
+                .no-results-message p {
+                    margin: 5px 0;
+                    font-size: 0.9rem;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    async function saveCourse(status = 'draft') {
         try {
             // 获取表单数据
             const courseName = document.getElementById('courseName').value.trim();
@@ -579,12 +727,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             const courseClass = document.getElementById('courseClass').value.trim();
             const courseSemester = document.getElementById('courseSemester').value;
             const courseDescription = document.getElementById('courseDescription').value.trim();
-            const courseStatus = status || document.getElementById('courseStatus').value;
             const allowPreview = document.getElementById('allowPreview').checked;
             
             // 验证必填字段
             if (!courseName || !courseCode || !courseDescription) {
                 alert('请填写所有必填字段（课程名称、课程代码、课程简介）');
+                return;
+            }
+            
+            // 验证课程代码是否已存在（排除当前编辑的课程）
+            const existingCourses = await window.courseManager.getCourses();
+            const existingCourse = existingCourses.find(course => 
+                course.code === courseCode && course.id !== currentEditCourseId
+            );
+            if (existingCourse) {
+                alert(`课程代码 "${courseCode}" 已存在，请使用其他代码`);
                 return;
             }
             
@@ -597,7 +754,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 class: courseClass,
                 semester: courseSemester,
                 description: courseDescription,
-                status: courseStatus,
+                department: '计算机系', // 默认院系，确保与其他模块数据兼容
+                status: status,
                 allowPreview: allowPreview,
                 bannerImage: bannerImage,
                 galleryImages: [...galleryImages],
@@ -607,6 +765,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!currentEditCourseId) {
                 // 新课程
                 courseData.createdAt = new Date().toISOString();
+                console.log('创建新课程:', courseData);
+            } else {
+                console.log('更新课程:', courseData);
             }
             
             // 保存到IndexedDB
@@ -614,9 +775,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // 重新加载课程数据
             courses = await window.courseManager.getCourses();
+            console.log('保存后课程数据:', courses.length, '门课程');
             
             // 重新渲染课程列表
-            renderCourses(courses);
+            await renderCourses(courses);
             updateEmptyState();
             
             // 显示成功消息
@@ -628,6 +790,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // 关闭模态框
             closeAllModals();
+            
+            // 手动触发数据更新事件，确保其他页面能收到通知
+            window.dispatchEvent(new CustomEvent('courseDataUpdated', {
+                detail: { source: 'courses' }
+            }));
+            
         } catch (error) {
             console.error('保存课程失败:', error);
             showNotification(`保存课程失败: ${error.message}`, 'error');
@@ -659,22 +827,322 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
                 ${galleryImages.length > 0 ? `
                 <div class="preview-section">
-                    <h3>课程图片</h3>
-                    <div class="preview-gallery">
-                        ${galleryImages.map(img => `<img src="${img.data}" alt="课程图片">`).join('')}
+                    <h3>课程图片轮播</h3>
+                    <div class="carousel-container">
+                        <div class="carousel-main">
+                            <div class="carousel-track" style="transform: translateX(0);">
+                                ${galleryImages.map((img, index) => `
+                                    <div class="carousel-slide ${index === 0 ? 'active' : ''}" data-index="${index}">
+                                        <img src="${img.data}" alt="课程图片 ${index + 1}" class="carousel-image">
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${galleryImages.length > 1 ? `
+                            <button class="carousel-btn prev">❮</button>
+                            <button class="carousel-btn next">❯</button>
+                            ` : ''}
+                        </div>
+                        ${galleryImages.length > 1 ? `
+                        <div class="carousel-thumbnails">
+                            ${galleryImages.map((img, index) => `
+                                <div class="thumbnail ${index === 0 ? 'active' : ''}" data-index="${index}">
+                                    <img src="${img.data}" alt="缩略图 ${index + 1}">
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        <div class="carousel-counter">
+                            <span class="current-slide">1</span> / <span class="total-slides">${galleryImages.length}</span>
+                        </div>
                     </div>
                 </div>
                 ` : ''}
                 <div class="preview-section">
                     <h3>课程状态</h3>
-                    <p>${document.getElementById('courseStatus').value === 'published' ? '已发布（学生可见）' : '草稿（仅教师可见）'}</p>
+                    <p>${currentEditCourseId ? '编辑中（保持原状态）' : '新创建（草稿状态）'}</p>
                 </div>
             </div>
         `;
         
         // 显示预览模态框
         document.querySelector('.course-preview').innerHTML = previewHTML;
+        
+        // 初始化轮播图功能
+        if (galleryImages.length > 0) {
+            initCarousel();
+        }
+        
+        // 初始化模态框拖动功能
+        initModalDrag(coursePreviewModal);
+        
+        // 初始化横幅图片自适应
+        initBannerAdaptive();
+        
         coursePreviewModal.classList.add('active');
+    }
+    
+    function initCarousel() {
+        const track = document.querySelector('.carousel-track');
+        const slides = document.querySelectorAll('.carousel-slide');
+        const thumbnails = document.querySelectorAll('.thumbnail');
+        const prevBtn = document.querySelector('.carousel-btn.prev');
+        const nextBtn = document.querySelector('.carousel-btn.next');
+        const currentSlide = document.querySelector('.current-slide');
+        
+        if (!track || slides.length === 0) return;
+        
+        let currentIndex = 0;
+        const totalSlides = slides.length;
+        
+        function updateCarousel() {
+            // 移动轨道
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            
+            // 更新当前幻灯片指示器
+            currentSlide.textContent = currentIndex + 1;
+            
+            // 更新幻灯片激活状态
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === currentIndex);
+            });
+            
+            // 更新缩略图激活状态
+            thumbnails.forEach((thumb, index) => {
+                thumb.classList.toggle('active', index === currentIndex);
+            });
+        }
+        
+        // 上一张按钮
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+                updateCarousel();
+            });
+        }
+        
+        // 下一张按钮
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % totalSlides;
+                updateCarousel();
+            });
+        }
+        
+        // 缩略图点击
+        thumbnails.forEach((thumb, index) => {
+            thumb.addEventListener('click', () => {
+                currentIndex = index;
+                updateCarousel();
+            });
+        });
+        
+        // 键盘导航
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+                updateCarousel();
+            } else if (e.key === 'ArrowRight') {
+                currentIndex = (currentIndex + 1) % totalSlides;
+                updateCarousel();
+            }
+        });
+        
+        // 自动轮播（可选）
+        let autoPlayInterval;
+        function startAutoPlay() {
+            autoPlayInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % totalSlides;
+                updateCarousel();
+            }, 5000); // 5秒自动切换
+        }
+        
+        function stopAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+            }
+        }
+        
+        // 鼠标悬停时暂停自动播放
+        const carouselContainer = document.querySelector('.carousel-container');
+        if (carouselContainer) {
+            carouselContainer.addEventListener('mouseenter', stopAutoPlay);
+            carouselContainer.addEventListener('mouseleave', startAutoPlay);
+        }
+        
+        // 开始自动播放
+        startAutoPlay();
+    }
+    
+    function initBannerAdaptive() {
+        const previewBanner = document.querySelector('.preview-banner');
+        const bannerImage = previewBanner.querySelector('img');
+        
+        if (!bannerImage) return;
+        
+        // 监听窗口大小变化
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                adjustBannerSize(bannerImage, previewBanner);
+            }, 250);
+        });
+        
+        // 初始调整
+        adjustBannerSize(bannerImage, previewBanner);
+        
+        // 监听模态框大小变化
+        const modalContent = document.querySelector('.preview-modal .modal-content');
+        if (modalContent) {
+            const resizeObserver = new ResizeObserver(() => {
+                adjustBannerSize(bannerImage, previewBanner);
+            });
+            resizeObserver.observe(modalContent);
+        }
+    }
+    
+    function adjustBannerSize(bannerImage, previewBanner) {
+        const modalContent = document.querySelector('.preview-modal .modal-content');
+        if (!modalContent) return;
+        
+        const modalWidth = modalContent.offsetWidth;
+        const modalHeight = modalContent.offsetHeight;
+        
+        // 根据模态框大小动态调整横幅高度
+        let bannerHeight;
+        
+        if (modalWidth >= 1200) {
+            bannerHeight = Math.min(400, modalHeight * 0.4);
+        } else if (modalWidth >= 992) {
+            bannerHeight = Math.min(350, modalHeight * 0.35);
+        } else if (modalWidth >= 768) {
+            bannerHeight = Math.min(300, modalHeight * 0.3);
+        } else if (modalWidth >= 576) {
+            bannerHeight = Math.min(250, modalHeight * 0.25);
+        } else {
+            bannerHeight = Math.min(200, modalHeight * 0.2);
+        }
+        
+        // 确保最小高度
+        bannerHeight = Math.max(bannerHeight, 150);
+        
+        previewBanner.style.height = bannerHeight + 'px';
+        
+        // 优化图片显示
+        bannerImage.style.objectFit = 'cover';
+        bannerImage.style.objectPosition = 'center';
+        
+        // 添加加载完成后的优化
+        if (bannerImage.complete) {
+            optimizeImageDisplay(bannerImage);
+        } else {
+            bannerImage.addEventListener('load', function() {
+                optimizeImageDisplay(bannerImage);
+            });
+        }
+    }
+    
+    function optimizeImageDisplay(bannerImage) {
+        // 根据图片实际尺寸优化显示
+        const naturalWidth = bannerImage.naturalWidth;
+        const naturalHeight = bannerImage.naturalHeight;
+        const aspectRatio = naturalWidth / naturalHeight;
+        
+        // 如果图片宽高比与容器差异较大，调整object-fit
+        const containerWidth = bannerImage.offsetWidth;
+        const containerHeight = bannerImage.offsetHeight;
+        const containerAspectRatio = containerWidth / containerHeight;
+        
+        if (Math.abs(aspectRatio - containerAspectRatio) > 0.5) {
+            // 差异较大时使用contain模式，确保图片完整显示
+            bannerImage.style.objectFit = 'contain';
+            bannerImage.style.backgroundColor = '#f8f9fa';
+        } else {
+            // 差异不大时使用cover模式，填充容器
+            bannerImage.style.objectFit = 'cover';
+            bannerImage.style.backgroundColor = 'transparent';
+        }
+    }
+    
+    function initModalDrag(modal) {
+        const modalContent = modal.querySelector('.modal-content');
+        const modalHeader = modal.querySelector('.modal-header');
+        
+        if (!modalHeader || !modalContent) return;
+        
+        let isDragging = false;
+        let startX, startY, startLeft, startTop;
+        
+        modalHeader.addEventListener('mousedown', startDrag);
+        modalHeader.addEventListener('touchstart', startDrag);
+        
+        function startDrag(e) {
+            if (e.target.classList.contains('close-modal')) return;
+            
+            isDragging = true;
+            
+            // 获取初始位置
+            const rect = modalContent.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            
+            // 获取鼠标/触摸初始位置
+            if (e.type === 'mousedown') {
+                startX = e.clientX;
+                startY = e.clientY;
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+            } else {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                document.addEventListener('touchmove', drag);
+                document.addEventListener('touchend', stopDrag);
+            }
+            
+            // 防止文本选择
+            e.preventDefault();
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            let currentX, currentY;
+            if (e.type === 'mousemove') {
+                currentX = e.clientX;
+                currentY = e.clientY;
+            } else {
+                currentX = e.touches[0].clientX;
+                currentY = e.touches[0].clientY;
+            }
+            
+            // 计算新的位置
+            const deltaX = currentX - startX;
+            const deltaY = currentY - startY;
+            
+            const newLeft = startLeft + deltaX;
+            const newTop = startTop + deltaY;
+            
+            // 限制在视窗范围内
+            const maxLeft = window.innerWidth - modalContent.offsetWidth;
+            const maxTop = window.innerHeight - modalContent.offsetHeight;
+            
+            const boundedLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            const boundedTop = Math.max(0, Math.min(newTop, maxTop));
+            
+            // 应用新位置
+            modalContent.style.position = 'fixed';
+            modalContent.style.left = boundedLeft + 'px';
+            modalContent.style.top = boundedTop + 'px';
+            modalContent.style.transform = 'none';
+        }
+        
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('touchend', stopDrag);
+        }
     }
     
     function manageCourse(id) {
@@ -694,11 +1162,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 保存到IndexedDB
                 await window.courseManager.saveCourse(course);
                 
-                // 重新加载课程数据
-                courses = await window.courseManager.getCourses();
+                // 更新本地课程列表，避免重新从数据库加载
+                const courseIndex = courses.findIndex(c => c.id === id);
+                if (courseIndex !== -1) {
+                    courses[courseIndex] = course;
+                }
                 
-                // 重新渲染课程列表
-                renderCourses(courses);
+                // 根据当前筛选条件重新渲染课程列表
+                const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+                const searchTerm = document.getElementById('courseSearch')?.value.trim().toLowerCase() || '';
+                
+                await filterCourses(activeFilter, searchTerm);
                 
                 showNotification(`课程"${course.name}"已成功发布！`, 'success');
             }
@@ -720,11 +1194,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 保存到IndexedDB
                 await window.courseManager.saveCourse(course);
                 
-                // 重新加载课程数据
-                courses = await window.courseManager.getCourses();
+                // 更新本地课程列表，避免重新从数据库加载
+                const courseIndex = courses.findIndex(c => c.id === id);
+                if (courseIndex !== -1) {
+                    courses[courseIndex] = course;
+                }
                 
-                // 重新渲染课程列表
-                renderCourses(courses);
+                // 根据当前筛选条件重新渲染课程列表
+                const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+                const searchTerm = document.getElementById('courseSearch')?.value.trim().toLowerCase() || '';
+                
+                await filterCourses(activeFilter, searchTerm);
                 
                 showNotification(`课程"${course.name}"已成功归档！`, 'success');
             }
@@ -746,11 +1226,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 保存到IndexedDB
                 await window.courseManager.saveCourse(course);
                 
-                // 重新加载课程数据
-                courses = await window.courseManager.getCourses();
+                // 更新本地课程列表，避免重新从数据库加载
+                const courseIndex = courses.findIndex(c => c.id === id);
+                if (courseIndex !== -1) {
+                    courses[courseIndex] = course;
+                }
                 
-                // 重新渲染课程列表
-                renderCourses(courses);
+                // 根据当前筛选条件重新渲染课程列表
+                const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+                const searchTerm = document.getElementById('courseSearch')?.value.trim().toLowerCase() || '';
+                
+                await filterCourses(activeFilter, searchTerm);
                 
                 showNotification(`课程"${course.name}"已成功恢复为草稿！`, 'success');
             }
@@ -769,11 +1255,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // 从IndexedDB删除课程
                 await window.courseManager.deleteCourse(id);
                 
-                // 重新加载课程数据
-                courses = await window.courseManager.getCourses();
+                // 更新本地课程列表，避免重新从数据库加载
+                courses = courses.filter(c => c.id !== id);
                 
-                // 重新渲染课程列表
-                renderCourses(courses);
+                // 根据当前筛选条件重新渲染课程列表
+                const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
+                const searchTerm = document.getElementById('courseSearch')?.value.trim().toLowerCase() || '';
+                
+                await filterCourses(activeFilter, searchTerm);
                 updateEmptyState();
                 
                 showNotification(`课程"${course.name}"已成功删除！`, 'success');

@@ -559,6 +559,73 @@ body {
     font-weight: 500;
 }
 
+/* 预览错误显示 */
+.preview-errors {
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.preview-errors h5 {
+    color: #e53e3e;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.preview-errors h5 i {
+    font-size: 0.9rem;
+}
+
+.error-list {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.error-item {
+    background: #fff;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #e53e3e;
+    font-size: 0.9rem;
+    color: #2d3748;
+}
+
+.error-more {
+    text-align: center;
+    padding: 8px;
+    color: #718096;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* 状态指示器 */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.valid {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.status-badge.invalid {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.status-badge.warning {
+    background: #fef5e7;
+    color: #744210;
+}
+
 /* ==================== 添加学生模态框特定样式 ==================== */
 #add-student-modal .modal-content {
     max-width: 600px;

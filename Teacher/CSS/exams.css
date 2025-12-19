@@ -336,38 +336,292 @@ body {
     height: 100%;
     background: rgba(0,0,0,0.5);
     z-index: 1000;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
     background: white;
-    margin: 50px auto;
-    padding: 20px;
+    margin: 20px;
+    padding: 0;
     border-radius: 8px;
-    max-width: 600px;
-    max-height: 80vh;
+    max-width: 90vw;
+    max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    position: relative;
+    resize: both;
+    overflow: auto;
+    min-width: 500px;
+    min-height: 400px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    cursor: move;
+    user-select: none;
+}
+
+.modal-header.draggable {
+    cursor: move;
+}
+
+.modal-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.resize-handle {
+    background: none;
+    border: none;
+    color: #7f8c8d;
+    cursor: nwse-resize;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.resize-handle:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+.modal-content.resizing {
+    pointer-events: none;
+}
+
+.modal-content.dragging {
+    pointer-events: none;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #7f8c8d;
+    padding: 5px;
+    border-radius: 50%;
+    transition: all 0.3s;
+}
+
+.close-modal:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+.modal-actions {
+    padding: 20px 25px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+.btn-modal {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+}
+
+.btn-modal.cancel {
+    background: #95a5a6;
+    color: white;
+}
+
+.btn-modal.cancel:hover {
+    background: #7f8c8d;
+}
+
+.btn-modal.confirm {
+    background: #3498db;
+    color: white;
+}
+
+.btn-modal.confirm:hover {
+    background: #2980b9;
+}
+
+/* 批改模态框特定样式 */
+.student-info-section,
+.assignment-info-section,
+.homework-files-section,
+.grading-form-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.student-info-section h4,
+.assignment-info-section h4,
+.homework-files-section h4,
+.grading-form-section h4 {
+    margin-bottom: 15px;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-row {
+    display: flex;
+    margin-bottom: 8px;
+    padding: 8px 0;
+}
+
+.info-row label {
+    width: 100px;
+    font-weight: 600;
+    color: #555;
+    flex-shrink: 0;
+}
+
+.info-row span {
+    color: #333;
+    flex: 1;
+}
+
+.files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s;
+}
+
+.file-item:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #3498db;
+    border-radius: 5px;
+    margin-right: 12px;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: #2c3e50;
+}
+
+.file-size {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.btn-download-file {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.btn-download-file:hover {
+    background: #219a52;
+}
+
+.no-files {
+    text-align: center;
+    padding: 30px;
+    color: #7f8c8d;
+}
+
+.no-files i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    display: block;
+    color: #bdc3c7;
 }
 
 .grading-form {
-    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.grading-form input,
-.grading-form textarea {
-    width: 100%;
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-group input,
+.form-group textarea {
     padding: 10px;
-    margin-bottom: 15px;
     border: 1px solid #ddd;
     border-radius: 4px;
+    font-size: 0.95rem;
+    font-family: 'Noto Sans SC', sans-serif;
+    transition: border-color 0.3s;
 }
 
-.grading-form button {
-    background: #3498db;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
 }
 
 /* 页脚 */

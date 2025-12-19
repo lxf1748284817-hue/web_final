@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function updateCourseOverview(courses) {
+    async function updateCourseOverview(courses) {
         const courseCardsContainer = document.getElementById('dashboard-course-cards');
         if (!courseCardsContainer) return;
         
@@ -115,16 +115,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 显示所有已发布的课程
-        publishedCourses.forEach(course => {
-            const courseCard = createCourseCard(course);
+        for (const course of publishedCourses) {
+            const courseCard = await createCourseCard(course);
             courseCardsContainer.appendChild(courseCard);
-        });
+        }
     }
     
-    function createCourseCard(course) {
-        // 生成模拟数据（实际项目中应从课程数据中获取）
+    async function createCourseCard(course) {
+        // 从数据库获取真实的作业和考试数量
+        let homeworkCount = 0;
+        let examCount = 0;
+        
+        try {
+            if (window.gradesManager) {
+                const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
+                const examAssignments = await window.gradesManager.getExamAssignments();
+                homeworkCount = homeworkAssignments.filter(hw => hw.courseId === course.id).length;
+                examCount = examAssignments.filter(exam => exam.courseId === course.id).length;
+            }
+        } catch (error) {
+            console.warn('获取作业考试数据失败:', error);
+        }
+        
+        const assignmentCount = homeworkCount + examCount;
         const studentCount = Math.floor(Math.random() * 30) + 20;
-        const assignmentCount = Math.floor(Math.random() * 5) + 1;
         
         // 根据课程状态确定徽章样式
         let statusClass = '';
