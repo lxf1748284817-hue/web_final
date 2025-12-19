@@ -11,11 +11,53 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 加载初始数据
     loadInitialData();
+    
+    // 检查URL参数
+    checkUrlParams();
 });
+
+// 检查URL参数
+function checkUrlParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role');
+    
+    if (role === 'admin') {
+        // 教学管理员登录，限制部分功能
+        limitAdminPermissions();
+    }
+}
+
+// 限制教学管理员权限
+function limitAdminPermissions() {
+    // 隐藏系统管理端专属功能
+    const sysAdminOnlyElements = document.querySelectorAll('.sysadmin-only');
+    sysAdminOnlyElements.forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // 限制数据备份功能
+    document.getElementById('manual-backup-btn').disabled = true;
+    document.getElementById('manual-backup-btn').title = '仅系统管理员可执行此操作';
+    document.getElementById('manual-backup-btn').style.opacity = '0.6';
+    
+    // 限制系统设置
+    document.getElementById('save-settings-btn').disabled = true;
+    document.getElementById('save-settings-btn').title = '仅系统管理员可修改系统设置';
+    document.getElementById('save-settings-btn').style.opacity = '0.6';
+    
+    // 修改页面标题
+    document.getElementById('page-title').textContent = '教学管理端';
+    document.querySelector('.logo-text').textContent = '教学管理系统 - 管理端';
+    
+    // 显示权限提示
+    setTimeout(() => {
+        showMessage('您以教学管理员身份登录，部分系统管理功能受限。', 'info');
+    }, 1000);
+}
 
 // 检查管理员登录状态
 function checkAdminLogin() {
-    const userData = sessionStorage.getItem('sysadmin_user');
+    const userData = sessionStorage.getItem('current_user');
     
     if (!userData) {
         // 未登录，跳转到登录页
@@ -26,16 +68,19 @@ function checkAdminLogin() {
     try {
         const user = JSON.parse(userData);
         
-        // 验证用户角色
-        if (user.role !== 'sysadmin') {
-            alert('您没有权限访问系统管理端！');
-            window.location.href = 'index.html';
+        // 验证用户角色（系统管理端只允许sysadmin和admin登录）
+        if (user.role !== 'sysadmin' && user.role !== 'admin') {
+            showMessage('您没有权限访问系统管理端！', 'danger');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
             return;
         }
         
         // 显示用户名
         document.getElementById('admin-username').textContent = user.username;
-        document.getElementById('current-user').textContent = user.username;
+        document.getElementById('current-user').textContent = user.name;
+        document.getElementById('current-role').textContent = getRoleText(user.role);
         
         // 检查会话是否过期
         const loginTime = new Date(user.loginTime);
@@ -44,9 +89,11 @@ function checkAdminLogin() {
         
         // 如果超过60分钟，要求重新登录
         if (diffInMinutes > 60) {
-            alert('会话已过期，请重新登录！');
-            sessionStorage.removeItem('sysadmin_user');
-            window.location.href = 'index.html';
+            showMessage('会话已过期，请重新登录！', 'warning');
+            setTimeout(() => {
+                sessionStorage.removeItem('current_user');
+                window.location.href = 'index.html';
+            }, 2000);
         }
         
     } catch (error) {
@@ -70,6 +117,79 @@ function initPage() {
     
     // 初始化选项卡
     initTabs();
+    
+    // 加载系统设置
+    loadSystemSettings();
+}
+
+// 加载系统设置
+function loadSystemSettings() {
+    const settings = JSON.parse(localStorage.getItem('system_settings') || '{}');
+    
+    // 应用设置到表单
+    if (settings.systemName) {
+        document.getElementById('system-name').value = settings.systemName;
+    }
+    
+    if (settings.maintenanceMode !== undefined) {
+        document.getElementById('maintenance-mode').checked = settings.maintenanceMode;
+    }
+    
+    if (settings.sessionTimeout) {
+        document.getElementById('session-timeout').value = settings.sessionTimeout;
+    }
+    
+    if (settings.maxLoginAttempts) {
+        document.getElementById('max-login-attempts').value = settings.maxLoginAttempts;
+    }
+    
+    if (settings.minPasswordLength) {
+        document.getElementById('min-password-length').value = settings.minPasswordLength;
+    }
+    
+    if (settings.passwordComplexity !== undefined) {
+        document.getElementById('password-complexity').checked = settings.passwordComplexity;
+    }
+    
+    if (settings.passwordExpiry) {
+        document.getElementById('password-expiry').value = settings.passwordExpiry;
+    }
+    
+    if (settings.twoFactorAuth !== undefined) {
+        document.getElementById('two-factor-auth').checked = settings.twoFactorAuth;
+    }
+    
+    if (settings.ipWhitelist) {
+        document.getElementById('ip-whitelist').value = settings.ipWhitelist;
+    }
+    
+    if (settings.emailNotifications !== undefined) {
+        document.getElementById('email-notifications').checked = settings.emailNotifications;
+    }
+    
+    if (settings.smtpServer) {
+        document.getElementById('smtp-server').value = settings.smtpServer;
+    }
+    
+    if (settings.notificationEmail) {
+        document.getElementById('notification-email').value = settings.notificationEmail;
+    }
+    
+    if (settings.autoBackup !== undefined) {
+        document.getElementById('auto-backup').checked = settings.autoBackup;
+    }
+    
+    if (settings.backupFrequency) {
+        document.getElementById('backup-frequency').value = settings.backupFrequency;
+    }
+    
+    if (settings.backupTime) {
+        document.getElementById('backup-time').value = settings.backupTime;
+    }
+    
+    if (settings.backupRetention) {
+        document.getElementById('backup-retention').value = settings.backupRetention;
+    }
 }
 
 // 更新服务器时间
@@ -203,19 +323,22 @@ function bindEvents() {
     document.getElementById('close-restore-modal').addEventListener('click', closeRestoreModal);
     document.getElementById('close-schedule-modal').addEventListener('click', closeScheduleModal);
     document.getElementById('close-add-user-modal').addEventListener('click', closeAddUserModal);
+    document.getElementById('close-edit-user-modal').addEventListener('click', closeEditUserModal);
     
     document.getElementById('cancel-restore').addEventListener('click', closeRestoreModal);
     document.getElementById('cancel-schedule').addEventListener('click', closeScheduleModal);
     document.getElementById('cancel-add-user').addEventListener('click', closeAddUserModal);
+    document.getElementById('cancel-edit-user').addEventListener('click', closeEditUserModal);
     
     // 模态框确认事件
     document.getElementById('confirm-restore').addEventListener('click', confirmRestore);
     document.getElementById('save-schedule').addEventListener('click', saveSchedule);
     document.getElementById('confirm-add-user').addEventListener('click', confirmAddUser);
+    document.getElementById('confirm-edit-user').addEventListener('click', confirmEditUser);
     
     // 点击模态框外部关闭
     window.addEventListener('click', function(e) {
-        const modals = ['restore-modal', 'schedule-modal', 'add-user-modal'];
+        const modals = ['restore-modal', 'schedule-modal', 'add-user-modal', 'edit-user-modal'];
         modals.forEach(modalId => {
             const modal = document.getElementById(modalId);
             if (e.target === modal) {
@@ -237,7 +360,7 @@ function loadInitialData() {
 const logData = [
     { id: 1, time: '2023-11-01 09:15:23', type: 'login', operator: 'sysadmin', role: '系统管理员', ip: '192.168.1.100', description: '系统管理员登录', result: '成功', details: '登录成功，IP: 192.168.1.100' },
     { id: 2, time: '2023-11-01 10:30:45', type: 'backup', operator: 'sysadmin', role: '系统管理员', ip: '192.168.1.100', description: '执行手动数据备份', result: '成功', details: '备份文件: backup_20231101_103045.zip' },
-    { id: 3, time: '2023-10-31 14:05:33', type: 'modify', operator: 'admin', role: '教学管理员', ip: '192.168.1.150', description: '修改学生成绩信息', result: '成功', details: '修改学生ID: 2021001 的成绩' },
+    { id: 3, time: '2023-10-31 14:05:33', type: 'modify', operator: 'admin01', role: '教学管理员', ip: '192.168.1.150', description: '修改学生成绩信息', result: '成功', details: '修改学生ID: 2021001 的成绩' },
     { id: 4, time: '2023-10-31 22:15:30', type: 'backup', operator: 'system', role: '系统', ip: '127.0.0.1', description: '执行自动数据备份', result: '成功', details: '自动备份任务完成' },
     { id: 5, time: '2023-10-31 15:20:18', type: 'delete', operator: 'sysadmin', role: '系统管理员', ip: '192.168.1.100', description: '删除过期日志记录', result: '成功', details: '删除30天前的日志记录' },
     { id: 6, time: '2023-10-30 11:45:12', type: 'security', operator: 'system', role: '系统', ip: '127.0.0.1', description: '检测到异常登录尝试', result: '警告', details: 'IP: 192.168.1.200 尝试登录失败5次' },
@@ -245,25 +368,18 @@ const logData = [
     { id: 8, time: '2023-10-30 09:12:45', type: 'restore', operator: 'sysadmin', role: '系统管理员', ip: '192.168.1.100', description: '恢复用户数据表', result: '成功', details: '从备份恢复用户表数据' },
     { id: 9, time: '2023-10-29 22:15:30', type: 'backup', operator: 'system', role: '系统', ip: '127.0.0.1', description: '执行自动数据备份', result: '成功', details: '自动备份任务完成' },
     { id: 10, time: '2023-10-29 13:30:15', type: 'system', operator: 'sysadmin', role: '系统管理员', ip: '192.168.1.100', description: '重启数据库服务', result: '成功', details: '数据库服务重启完成' },
-    { id: 11, time: '2023-10-28 17:25:40', type: 'modify', operator: 'admin', role: '教学管理员', ip: '192.168.1.155', description: '更新课程信息', result: '成功', details: '更新课程ID: CS101 的信息' },
+    { id: 11, time: '2023-10-28 17:25:40', type: 'modify', operator: 'admin01', role: '教学管理员', ip: '192.168.1.155', description: '更新课程信息', result: '成功', details: '更新课程ID: CS101 的信息' },
     { id: 12, time: '2023-10-28 22:15:30', type: 'backup', operator: 'system', role: '系统', ip: '127.0.0.1', description: '执行自动数据备份', result: '成功', details: '自动备份任务完成' },
-    { id: 13, time: '2023-10-27 08:45:10', type: 'login', operator: 'student_li', role: '学生', ip: '192.168.1.180', description: '学生账号登录', result: '成功', details: '登录成功，IP: 192.168.1.180' },
+    { id: 13, time: '2023-10-27 08:45:10', type: 'login', operator: 'student_001', role: '学生', ip: '192.168.1.180', description: '学生账号登录', result: '成功', details: '登录成功，IP: 192.168.1.180' },
     { id: 14, time: '2023-10-27 22:15:30', type: 'backup', operator: 'system', role: '系统', ip: '127.0.0.1', description: '执行自动数据备份', result: '成功', details: '自动备份任务完成' },
     { id: 15, time: '2023-10-26 19:30:55', type: 'security', operator: 'system', role: '系统', ip: '127.0.0.1', description: '系统安全检查', result: '成功', details: '安全检查通过，无安全隐患' },
 ];
 
-// 用户数据
-const userData = [
-    { id: 1, username: 'sysadmin', fullname: '系统管理员', role: 'sysadmin', status: 'active', lastLogin: '2023-11-01 09:15', registerTime: '2023-01-01' },
-    { id: 2, username: 'admin01', fullname: '王管理员', role: 'admin', status: 'active', lastLogin: '2023-10-31 14:05', registerTime: '2023-02-15' },
-    { id: 3, username: 'teacher_zhang', fullname: '张老师', role: 'teacher', status: 'active', lastLogin: '2023-10-30 16:40', registerTime: '2023-03-10' },
-    { id: 4, username: 'teacher_li', fullname: '李老师', role: 'teacher', status: 'active', lastLogin: '2023-10-28 09:20', registerTime: '2023-03-12' },
-    { id: 5, username: 'student_001', fullname: '张三', role: 'student', status: 'active', lastLogin: '2023-10-29 11:30', registerTime: '2023-09-01' },
-    { id: 6, username: 'student_002', fullname: '李四', role: 'student', status: 'active', lastLogin: '2023-10-28 15:45', registerTime: '2023-09-01' },
-    { id: 7, username: 'student_003', fullname: '王五', role: 'student', status: 'locked', lastLogin: '2023-10-25 10:20', registerTime: '2023-09-01' },
-    { id: 8, username: 'teacher_wang', fullname: '王教授', role: 'teacher', status: 'inactive', lastLogin: '2023-09-15 08:30', registerTime: '2023-03-20' },
-    { id: 9, username: 'admin02', fullname: '赵管理员', role: 'admin', status: 'active', lastLogin: '2023-10-27 13:15', registerTime: '2023-04-05' },
-    { id: 10, username: 'student_004', fullname: '赵六', role: 'student', status: 'active', lastLogin: '2023-10-26 16:10', registerTime: '2023-09-01' },
+// 用户数据（更新为仅管理员用户）
+let userData = [
+    { id: 1, username: 'sysadmin', fullname: '系统管理员', role: 'sysadmin', status: 'active', lastLogin: '2023-11-01 09:15', registerTime: '2023-01-01', email: 'sysadmin@example.com', phone: '13800000001', gender: 'male', birthday: '1990-01-01', region: '北京' },
+    { id: 2, username: 'admin01', fullname: '王管理员', role: 'admin', status: 'active', lastLogin: '2023-10-31 14:05', registerTime: '2023-02-15', email: 'admin01@example.com', phone: '13800000002', gender: 'male', birthday: '1985-03-20', region: '上海' },
+    { id: 3, username: 'admin02', fullname: '赵管理员', role: 'admin', status: 'active', lastLogin: '2023-10-27 13:15', registerTime: '2023-04-05', email: 'admin02@example.com', phone: '13800000003', gender: 'female', birthday: '1988-07-15', region: '广州' }
 ];
 
 // 备份历史数据
@@ -430,9 +546,6 @@ function clearLogs() {
         
         setTimeout(() => {
             showMessage('成功清理30天前的日志记录！', 'success');
-            
-            // 在实际应用中，这里会调用API清理日志
-            // 这里只是模拟，不实际删除数据
         }, 2000);
     }
 }
@@ -511,6 +624,12 @@ function renderBackupHistory() {
 
 // 手动备份
 function manualBackup() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权执行数据备份操作！', 'danger');
+        return;
+    }
+    
     showMessage('开始执行手动数据备份，请勿关闭页面...', 'info');
     
     // 模拟备份过程
@@ -525,17 +644,19 @@ function manualBackup() {
         document.getElementById('last-backup-time').textContent = `${dateStr} ${timeStr}`;
         document.getElementById('last-backup-status').textContent = '手动备份成功';
         
-        // 刷新备份历史
-        backupHistory.unshift({
-            id: backupHistory.length + 1,
-            date: `${dateStr} ${timeStr}`,
-            type: '手动备份',
-            size: (1.2 + Math.random() * 0.1).toFixed(2) + ' GB',
-            status: '成功',
-            backupType: '完整备份'
+        // 记录日志
+        const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+        logData.unshift({
+            id: logData.length + 1,
+            time: `${dateStr} ${timeStr}`,
+            type: 'backup',
+            operator: currentUser.username || 'sysadmin',
+            role: getRoleText(currentUser.role || 'sysadmin'),
+            ip: '192.168.1.100',
+            description: '执行手动数据备份',
+            result: '成功',
+            details: '备份文件: backup_' + new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + '.zip'
         });
-        
-        renderBackupHistory();
     }, 3000);
 }
 
@@ -546,6 +667,11 @@ function showScheduleModal() {
 
 // 显示恢复备份模态框
 function showRestoreModal() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权执行数据恢复操作！', 'danger');
+        return;
+    }
     document.getElementById('restore-modal').style.display = 'flex';
 }
 
@@ -558,14 +684,17 @@ function showBackupHistory() {
 
 // 清理旧备份
 function cleanBackup() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权清理备份文件！', 'danger');
+        return;
+    }
+    
     if (confirm('确定要清理30天前的旧备份文件吗？')) {
         showMessage('开始清理旧备份文件...', 'info');
         
         setTimeout(() => {
             showMessage('成功清理30天前的旧备份文件！', 'success');
-            
-            // 在实际应用中，这里会调用清理API
-            // 这里只是模拟，不实际删除数据
         }, 2000);
     }
 }
@@ -576,7 +705,6 @@ function downloadBackup(backupId) {
     if (backup) {
         showMessage(`开始下载备份文件：${backup.date}`, 'info');
         
-        // 在实际应用中，这里会调用下载API
         setTimeout(() => {
             showMessage(`备份文件 ${backup.date}.zip 下载完成！`, 'success');
         }, 1500);
@@ -585,6 +713,12 @@ function downloadBackup(backupId) {
 
 // 恢复特定备份
 function restoreThisBackup(backupId) {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权执行数据恢复操作！', 'danger');
+        return;
+    }
+    
     const backup = backupHistory.find(b => b.id === backupId);
     if (backup) {
         if (confirm(`确定要恢复备份点 ${backup.date} 吗？此操作将覆盖当前数据！`)) {
@@ -593,7 +727,13 @@ function restoreThisBackup(backupId) {
             setTimeout(() => {
                 showMessage(`备份 ${backup.date} 恢复成功！系统将重新启动。`, 'success');
                 
-                // 在实际应用中，这里会调用恢复API并重启系统
+                // 模拟系统重启
+                setTimeout(() => {
+                    showMessage('系统正在重启，请重新登录...', 'info');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                }, 5000);
             }, 3000);
         }
     }
@@ -601,19 +741,19 @@ function restoreThisBackup(backupId) {
 
 // 删除备份
 function deleteBackup(backupId) {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权删除备份文件！', 'danger');
+        return;
+    }
+    
     const backup = backupHistory.find(b => b.id === backupId);
     if (backup) {
         if (confirm(`确定要删除备份点 ${backup.date} 吗？此操作不可恢复！`)) {
             showMessage(`正在删除备份：${backup.date}...`, 'info');
             
             setTimeout(() => {
-                // 从数组中删除
-                const index = backupHistory.findIndex(b => b.id === backupId);
-                if (index !== -1) {
-                    backupHistory.splice(index, 1);
-                    renderBackupHistory();
-                    showMessage(`备份 ${backup.date} 删除成功！`, 'success');
-                }
+                showMessage(`备份 ${backup.date} 删除成功！`, 'success');
             }, 1500);
         }
     }
@@ -631,6 +771,13 @@ function closeScheduleModal() {
 
 // 确认恢复备份
 function confirmRestore() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权执行数据恢复操作！', 'danger');
+        closeRestoreModal();
+        return;
+    }
+    
     const selectedBackup = document.getElementById('backup-select').value;
     if (!selectedBackup) {
         showMessage('请选择要恢复的备份点！', 'danger');
@@ -657,6 +804,13 @@ function confirmRestore() {
 
 // 保存备份计划
 function saveSchedule() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权修改备份计划！', 'danger');
+        closeScheduleModal();
+        return;
+    }
+    
     const frequency = document.getElementById('backup-frequency-modal').value;
     const time = document.getElementById('backup-time-modal').value;
     const retention = document.getElementById('retention-policy').value;
@@ -692,9 +846,17 @@ function renderUsersTable(users) {
             <td>${user.lastLogin}</td>
             <td>${user.registerTime}</td>
             <td>
-                <button class="btn btn-sm btn-secondary" onclick="editUser(${user.id})">编辑</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">删除</button>
-                <button class="btn btn-sm btn-success" onclick="resetPassword(${user.id})">重置密码</button>
+                <div class="action-buttons">
+                    <button class="btn btn-sm btn-secondary" onclick="editUser(${user.id})">编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">删除</button>
+                    <button class="btn btn-sm btn-success" onclick="resetPassword(${user.id})">重置密码</button>
+                    ${user.status === 'locked' ? 
+                        `<button class="btn btn-sm btn-warning" onclick="unlockUser(${user.id})">解锁</button>` : 
+                        user.status === 'inactive' ?
+                        `<button class="btn btn-sm btn-info" onclick="activateUser(${user.id})">激活</button>` :
+                        `<button class="btn btn-sm btn-secondary" onclick="lockUser(${user.id})">锁定</button>`
+                    }
+                </div>
             </td>
         `;
         tableBody.appendChild(row);
@@ -711,9 +873,7 @@ function renderUsersTable(users) {
 function getRoleText(role) {
     const roleMap = {
         'sysadmin': '系统管理员',
-        'admin': '教学管理员',
-        'teacher': '教师',
-        'student': '学生'
+        'admin': '教学管理员'
     };
     return roleMap[role] || role;
 }
@@ -743,7 +903,6 @@ function renderUsersPagination(totalItems) {
         pageBtn.addEventListener('click', function() {
             document.querySelectorAll('#users-pagination .page-btn').forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
-            // 在实际应用中，这里会加载对应页面的数据
         });
         pagination.appendChild(pageBtn);
     }
@@ -760,9 +919,13 @@ function closeAddUserModal() {
     // 清空表单
     document.getElementById('new-username').value = '';
     document.getElementById('new-fullname').value = '';
-    document.getElementById('new-user-role').value = 'student';
+    document.getElementById('new-user-role').value = 'admin';
     document.getElementById('new-password').value = '';
     document.getElementById('new-email').value = '';
+    document.getElementById('new-phone').value = '';
+    document.getElementById('new-gender').value = 'male';
+    document.getElementById('new-birthday').value = '';
+    document.getElementById('new-region').value = '';
 }
 
 // 确认添加用户
@@ -772,6 +935,10 @@ function confirmAddUser() {
     const role = document.getElementById('new-user-role').value;
     const password = document.getElementById('new-password').value;
     const email = document.getElementById('new-email').value.trim();
+    const phone = document.getElementById('new-phone').value.trim();
+    const gender = document.getElementById('new-gender').value;
+    const birthday = document.getElementById('new-birthday').value;
+    const region = document.getElementById('new-region').value.trim();
     
     if (!username || !fullname || !password) {
         showMessage('请填写所有必填字段！', 'danger');
@@ -792,7 +959,12 @@ function confirmAddUser() {
         role: role,
         status: 'active',
         lastLogin: '从未登录',
-        registerTime: new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        registerTime: new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+        email: email || `${username}@example.com`,
+        phone: phone || '未设置',
+        gender: gender || 'male',
+        birthday: birthday || '未设置',
+        region: region || '未设置'
     };
     
     userData.push(newUser);
@@ -802,12 +974,13 @@ function confirmAddUser() {
     closeAddUserModal();
     
     // 记录日志
+    const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
     logData.unshift({
         id: logData.length + 1,
         time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         type: 'modify',
-        operator: 'sysadmin',
-        role: '系统管理员',
+        operator: currentUser.username || 'sysadmin',
+        role: getRoleText(currentUser.role || 'sysadmin'),
         ip: '192.168.1.100',
         description: `添加新用户: ${username}`,
         result: '成功',
@@ -840,7 +1013,9 @@ function searchUsers() {
         filteredUsers = filteredUsers.filter(user => 
             user.username.toLowerCase().includes(searchText) || 
             user.fullname.toLowerCase().includes(searchText) ||
-            user.id.toString().includes(searchText)
+            user.id.toString().includes(searchText) ||
+            user.email.toLowerCase().includes(searchText) ||
+            user.phone.includes(searchText)
         );
     }
     
@@ -852,16 +1027,90 @@ function searchUsers() {
 function editUser(userId) {
     const user = userData.find(u => u.id === userId);
     if (user) {
-        alert(`编辑用户: ${user.username} (${user.fullname})
+        // 填充编辑表单
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-username').value = user.username;
+        document.getElementById('edit-fullname').value = user.fullname;
+        document.getElementById('edit-user-role').value = user.role;
+        document.getElementById('edit-email').value = user.email;
+        document.getElementById('edit-phone').value = user.phone;
+        document.getElementById('edit-gender').value = user.gender;
+        document.getElementById('edit-birthday').value = user.birthday;
+        document.getElementById('edit-region').value = user.region;
+        document.getElementById('edit-status').value = user.status;
         
-此功能正在开发中，当前版本仅支持查看用户信息。
+        // 显示模态框
+        document.getElementById('edit-user-modal').style.display = 'flex';
+    }
+}
 
-用户名: ${user.username}
-姓名: ${user.fullname}
-角色: ${getRoleText(user.role)}
-状态: ${getStatusText(user.status)}
-最后登录: ${user.lastLogin}
-注册时间: ${user.registerTime}`);
+// 关闭编辑用户模态框
+function closeEditUserModal() {
+    document.getElementById('edit-user-modal').style.display = 'none';
+}
+
+// 确认编辑用户
+function confirmEditUser() {
+    const userId = parseInt(document.getElementById('edit-user-id').value);
+    const fullname = document.getElementById('edit-fullname').value.trim();
+    const role = document.getElementById('edit-user-role').value;
+    const email = document.getElementById('edit-email').value.trim();
+    const phone = document.getElementById('edit-phone').value.trim();
+    const gender = document.getElementById('edit-gender').value;
+    const birthday = document.getElementById('edit-birthday').value;
+    const region = document.getElementById('edit-region').value.trim();
+    const status = document.getElementById('edit-status').value;
+    
+    if (!fullname) {
+        showMessage('请输入用户姓名！', 'danger');
+        return;
+    }
+    
+    // 更新用户信息
+    const userIndex = userData.findIndex(u => u.id === userId);
+    if (userIndex !== -1) {
+        // 检查是否尝试修改超级管理员
+        if (userData[userIndex].username === 'sysadmin' && userData[userIndex].role === 'sysadmin') {
+            if (role !== 'sysadmin') {
+                showMessage('不能修改超级管理员的角色！', 'danger');
+                return;
+            }
+            if (status !== 'active') {
+                showMessage('不能锁定或停用超级管理员！', 'danger');
+                return;
+            }
+        }
+        
+        // 保存旧信息用于日志
+        const oldUser = { ...userData[userIndex] };
+        
+        // 更新用户信息
+        userData[userIndex].fullname = fullname;
+        userData[userIndex].role = role;
+        userData[userIndex].email = email;
+        userData[userIndex].phone = phone;
+        userData[userIndex].gender = gender;
+        userData[userIndex].birthday = birthday;
+        userData[userIndex].region = region;
+        userData[userIndex].status = status;
+        
+        renderUsersTable(userData);
+        showMessage('用户信息更新成功！', 'success');
+        closeEditUserModal();
+        
+        // 记录日志
+        const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+        logData.unshift({
+            id: logData.length + 1,
+            time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            type: 'modify',
+            operator: currentUser.username || 'sysadmin',
+            role: getRoleText(currentUser.role || 'sysadmin'),
+            ip: '192.168.1.100',
+            description: `编辑用户信息: ${oldUser.username}`,
+            result: '成功',
+            details: `修改用户 ${oldUser.fullname} (${oldUser.username}) 的信息`
+        });
     }
 }
 
@@ -870,7 +1119,7 @@ function deleteUser(userId) {
     const user = userData.find(u => u.id === userId);
     if (user) {
         if (confirm(`确定要删除用户 ${user.username} (${user.fullname}) 吗？此操作不可恢复！`)) {
-            if (user.role === 'sysadmin' && user.username === 'sysadmin') {
+            if (user.username === 'sysadmin') {
                 showMessage('不能删除超级管理员账户！', 'danger');
                 return;
             }
@@ -883,12 +1132,13 @@ function deleteUser(userId) {
                 showMessage(`用户 ${user.username} 删除成功！`, 'success');
                 
                 // 记录日志
+                const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
                 logData.unshift({
                     id: logData.length + 1,
                     time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                     type: 'delete',
-                    operator: 'sysadmin',
-                    role: '系统管理员',
+                    operator: currentUser.username || 'sysadmin',
+                    role: getRoleText(currentUser.role || 'sysadmin'),
                     ip: '192.168.1.100',
                     description: `删除用户: ${user.username}`,
                     result: '成功',
@@ -907,12 +1157,13 @@ function resetPassword(userId) {
             showMessage(`用户 ${user.username} 的密码已重置为默认密码！`, 'success');
             
             // 记录日志
+            const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
             logData.unshift({
                 id: logData.length + 1,
                 time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 type: 'modify',
-                operator: 'sysadmin',
-                role: '系统管理员',
+                operator: currentUser.username || 'sysadmin',
+                role: getRoleText(currentUser.role || 'sysadmin'),
                 ip: '192.168.1.100',
                 description: `重置用户密码: ${user.username}`,
                 result: '成功',
@@ -922,18 +1173,105 @@ function resetPassword(userId) {
     }
 }
 
+// 解锁用户
+function unlockUser(userId) {
+    const user = userData.find(u => u.id === userId);
+    if (user && user.status === 'locked') {
+        if (confirm(`确定要解锁用户 ${user.username} 吗？`)) {
+            user.status = 'active';
+            renderUsersTable(userData);
+            showMessage(`用户 ${user.username} 已解锁！`, 'success');
+            
+            // 记录日志
+            const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+            logData.unshift({
+                id: logData.length + 1,
+                time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                type: 'modify',
+                operator: currentUser.username || 'sysadmin',
+                role: getRoleText(currentUser.role || 'sysadmin'),
+                ip: '192.168.1.100',
+                description: `解锁用户账号: ${user.username}`,
+                result: '成功',
+                details: `解锁用户 ${user.fullname} (${user.username}) 的账号`
+            });
+        }
+    }
+}
+
+// 激活用户
+function activateUser(userId) {
+    const user = userData.find(u => u.id === userId);
+    if (user && user.status === 'inactive') {
+        if (confirm(`确定要激活用户 ${user.username} 吗？`)) {
+            user.status = 'active';
+            renderUsersTable(userData);
+            showMessage(`用户 ${user.username} 已激活！`, 'success');
+            
+            // 记录日志
+            const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+            logData.unshift({
+                id: logData.length + 1,
+                time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                type: 'modify',
+                operator: currentUser.username || 'sysadmin',
+                role: getRoleText(currentUser.role || 'sysadmin'),
+                ip: '192.168.1.100',
+                description: `激活用户账号: ${user.username}`,
+                result: '成功',
+                details: `激活用户 ${user.fullname} (${user.username}) 的账号`
+            });
+        }
+    }
+}
+
+// 锁定用户
+function lockUser(userId) {
+    const user = userData.find(u => u.id === userId);
+    if (user && user.status === 'active') {
+        if (user.username === 'sysadmin') {
+            showMessage('不能锁定超级管理员账户！', 'danger');
+            return;
+        }
+        
+        if (confirm(`确定要锁定用户 ${user.username} 吗？锁定后该用户将无法登录。`)) {
+            user.status = 'locked';
+            renderUsersTable(userData);
+            showMessage(`用户 ${user.username} 已锁定！`, 'success');
+            
+            // 记录日志
+            const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+            logData.unshift({
+                id: logData.length + 1,
+                time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                type: 'modify',
+                operator: currentUser.username || 'sysadmin',
+                role: getRoleText(currentUser.role || 'sysadmin'),
+                ip: '192.168.1.100',
+                description: `锁定用户账号: ${user.username}`,
+                result: '成功',
+                details: `锁定用户 ${user.fullname} (${user.username}) 的账号`
+            });
+        }
+    }
+}
+
 // 加载设置数据
 function loadSettingsData() {
-    // 这里可以加载保存的设置
-    // 目前只是初始化默认值
+    // 已经在initPage中调用loadSystemSettings
 }
 
 // 保存设置
 function saveSettings() {
+    const userData = JSON.parse(sessionStorage.getItem('current_user') || '{}');
+    if (userData.role === 'admin') {
+        showMessage('教学管理员无权修改系统设置！', 'danger');
+        return;
+    }
+    
     // 收集所有设置值
     const settings = {
         systemName: document.getElementById('system-name').value,
-        systemVersion: document.getElementById('system-version').value,
         maintenanceMode: document.getElementById('maintenance-mode').checked,
         sessionTimeout: document.getElementById('session-timeout').value,
         maxLoginAttempts: document.getElementById('max-login-attempts').value,
@@ -948,21 +1286,23 @@ function saveSettings() {
         autoBackup: document.getElementById('auto-backup').checked,
         backupFrequency: document.getElementById('backup-frequency').value,
         backupTime: document.getElementById('backup-time').value,
-        backupRetention: document.getElementById('backup-retention').value
+        backupRetention: document.getElementById('backup-retention').value,
+        lastModified: new Date().toISOString()
     };
     
-    // 在实际应用中，这里会将设置保存到服务器
-    // 这里只是模拟保存
+    // 保存到本地存储
+    localStorage.setItem('system_settings', JSON.stringify(settings));
     
     showMessage('系统设置已保存成功！', 'success');
     
     // 记录日志
+    const currentUser = JSON.parse(sessionStorage.getItem('current_user') || '{}');
     logData.unshift({
         id: logData.length + 1,
         time: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         type: 'system',
-        operator: 'sysadmin',
-        role: '系统管理员',
+        operator: currentUser.username || 'sysadmin',
+        role: getRoleText(currentUser.role || 'sysadmin'),
         ip: '192.168.1.100',
         description: '修改系统设置',
         result: '成功',

@@ -22,7 +22,7 @@
                 <div class="user-avatar">SA</div>
                 <div class="user-details">
                     <div class="user-name" id="current-user">系统管理员</div>
-                    <div class="user-role">System Admin</div>
+                    <div class="user-role" id="current-role">System Admin</div>
                 </div>
             </div>
             
@@ -621,10 +621,134 @@
                     <label class="form-label">邮箱</label>
                     <input type="email" class="filter-input" id="new-email" placeholder="输入邮箱地址">
                 </div>
+                
+                <div class="form-group">
+                    <label class="form-label">手机号</label>
+                    <input type="tel" class="filter-input" id="new-phone" placeholder="输入手机号">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">性别</label>
+                            <select class="filter-select" id="new-gender">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="filter-input" id="new-birthday">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">地区</label>
+                    <input type="text" class="filter-input" id="new-region" placeholder="输入地区">
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancel-add-user">取消</button>
                 <button class="btn btn-primary" id="confirm-add-user">添加用户</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑用户模态框 -->
+    <div class="modal" id="edit-user-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑用户信息</h3>
+                <button class="close-btn" id="close-edit-user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">用户名</label>
+                            <input type="text" class="filter-input" id="edit-username" readonly>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">姓名 <span class="required">*</span></label>
+                            <input type="text" class="filter-input" id="edit-fullname" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">角色</label>
+                            <select class="filter-select" id="edit-user-role">
+                                <option value="student">学生</option>
+                                <option value="teacher">教师</option>
+                                <option value="admin">教学管理员</option>
+                                <option value="sysadmin">系统管理员</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">状态</label>
+                            <select class="filter-select" id="edit-status">
+                                <option value="active">活跃</option>
+                                <option value="locked">锁定</option>
+                                <option value="inactive">未激活</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">邮箱</label>
+                            <input type="email" class="filter-input" id="edit-email">
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">手机号</label>
+                            <input type="tel" class="filter-input" id="edit-phone">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">性别</label>
+                            <select class="filter-select" id="edit-gender">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="filter-input" id="edit-birthday">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">地区</label>
+                    <input type="text" class="filter-input" id="edit-region" placeholder="输入地区">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-edit-user">取消</button>
+                <button class="btn btn-primary" id="confirm-edit-user">保存修改</button>
             </div>
         </div>
     </div>
