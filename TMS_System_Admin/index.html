@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<<<<<<< HEAD
     <title>教学管理系统 - 登录</title>
+=======
+    <title>教学管理系统 - 系统管理端登录</title>
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -186,6 +190,15 @@
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
+<<<<<<< HEAD
+=======
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
     </style>
 </head>
 <body>
@@ -220,9 +233,12 @@
                 <select id="role" name="role" class="form-select">
                     <option value="sysadmin">系统管理员</option>
                     <option value="admin">教学管理员</option>
+<<<<<<< HEAD
                     <option value="teacher">教师</option>
                     <option value="student">学生</option>
                     <option value="guest">游客</option>
+=======
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
                 </select>
             </div>
             
@@ -238,8 +254,13 @@
         </form>
         
         <div class="login-footer">
+<<<<<<< HEAD
             <p>© 2023 教学管理系统 | 仅供演示使用</p>
             <p class="version">系统管理端 v1.0</p>
+=======
+            <p>© 2023 教学管理系统 | 系统管理端</p>
+            <p class="version">v2.1.0</p>
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
         </div>
     </div>
     
@@ -249,6 +270,24 @@
             const messageArea = document.getElementById('message-area');
             const forgotPasswordLink = document.getElementById('forgot-password');
             
+<<<<<<< HEAD
+=======
+            // 测试账号数据（仅管理员）
+            const testAccounts = {
+                // 系统管理员
+                'sysadmin': { password: 'admin123', role: 'sysadmin', name: '系统管理员', status: 'active' },
+                // 教学管理员
+                'admin01': { password: '123456', role: 'admin', name: '王管理员', status: 'active' },
+                'admin02': { password: '123456', role: 'admin', name: '赵管理员', status: 'active' }
+            };
+            
+            // 获取维护模式状态
+            function getMaintenanceMode() {
+                const settings = JSON.parse(localStorage.getItem('system_settings') || '{}');
+                return settings.maintenanceMode || false;
+            }
+            
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
             // 显示消息函数
             function showMessage(message, type) {
                 messageArea.innerHTML = `
@@ -264,7 +303,11 @@
             }
             
             // 检查是否有记住的用户
+<<<<<<< HEAD
             const rememberedUser = localStorage.getItem('sysadmin_rememberedUser');
+=======
+            const rememberedUser = localStorage.getItem('rememberedUser');
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
             if (rememberedUser) {
                 document.getElementById('username').value = rememberedUser;
                 document.getElementById('remember-me').checked = true;
@@ -275,9 +318,15 @@
             loginForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
+<<<<<<< HEAD
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
                 const role = document.getElementById('role').value;
+=======
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                const selectedRole = document.getElementById('role').value;
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
                 const rememberMe = document.getElementById('remember-me').checked;
                 
                 // 简单验证
@@ -286,6 +335,7 @@
                     return;
                 }
                 
+<<<<<<< HEAD
                 // 模拟登录验证 - 系统管理员专用账户
                 if (role === 'sysadmin' && username === 'sysadmin' && password === 'admin123') {
                     showMessage('登录成功！正在跳转到系统管理端...', 'success');
@@ -314,14 +364,91 @@
                 } else {
                     showMessage('用户名或密码错误！请使用 sysadmin/admin123 测试登录', 'danger');
                 }
+=======
+                // 检查用户是否存在
+                const account = testAccounts[username];
+                if (!account) {
+                    showMessage('用户名不存在！', 'danger');
+                    return;
+                }
+                
+                // 检查密码
+                if (password !== account.password) {
+                    showMessage('密码错误！', 'danger');
+                    return;
+                }
+                
+                // 检查账号状态
+                if (account.status === 'locked') {
+                    showMessage('账号已被锁定，请联系系统管理员解锁！', 'danger');
+                    return;
+                }
+                
+                if (account.status === 'inactive') {
+                    showMessage('账号未激活，请联系系统管理员激活！', 'warning');
+                    return;
+                }
+                
+                // 检查角色是否匹配
+                if (account.role !== selectedRole) {
+                    showMessage(`请选择正确的角色：${getRoleText(account.role)}`, 'danger');
+                    document.getElementById('role').value = account.role;
+                    return;
+                }
+                
+                // 检查维护模式
+                const maintenanceMode = getMaintenanceMode();
+                if (maintenanceMode && account.role !== 'sysadmin') {
+                    showMessage('系统处于维护模式，只有系统管理员可以登录！', 'danger');
+                    return;
+                }
+                
+                // 登录成功
+                showMessage('登录成功！正在跳转到系统管理端...', 'success');
+                
+                // 保存登录状态
+                if (rememberMe) {
+                    localStorage.setItem('rememberedUser', username);
+                } else {
+                    localStorage.removeItem('rememberedUser');
+                }
+                
+                // 保存用户信息到sessionStorage
+                sessionStorage.setItem('current_user', JSON.stringify({
+                    username: username,
+                    name: account.name,
+                    role: account.role,
+                    loginTime: new Date().toISOString()
+                }));
+                
+                // 跳转到系统管理端
+                setTimeout(() => {
+                    window.location.href = 'admin.html';
+                }, 1500);
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
             });
             
             // 忘记密码功能
             forgotPasswordLink.addEventListener('click', function(e) {
                 e.preventDefault();
+<<<<<<< HEAD
                 showMessage('请联系超级管理员重置密码，或使用默认账户 sysadmin/admin123 登录。', 'info');
             });
             
+=======
+                showMessage('请联系超级管理员重置密码。', 'info');
+            });
+            
+            // 获取角色文本
+            function getRoleText(role) {
+                const roleMap = {
+                    'sysadmin': '系统管理员',
+                    'admin': '教学管理员'
+                };
+                return roleMap[role] || role;
+            }
+            
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
             // 自动聚焦用户名输入框
             document.getElementById('username').focus();
         });

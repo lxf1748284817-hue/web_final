@@ -44,13 +44,21 @@
             color: #555;
         }
         
-        .form-group input {
+        /* 统一输入框和下拉框样式 */
+        .form-group input, 
+        .form-group select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 1em;
             box-sizing: border-box;
+            background-color: #fff;
+        }
+
+        .form-group select:focus {
+            border-color: var(--primary-color);
+            outline: none;
         }
 
         .error-message {
@@ -58,11 +66,11 @@
             margin-top: 15px;
             text-align: center;
             font-size: 0.9em;
-            min-height: 1.2em; /* 防止文字出现时抖动 */
+            min-height: 1.2em;
         }
 
         .forgot-password {
-            text-align: center; /* 居中显示更友好 */
+            text-align: center;
             margin-top: 20px;
             font-size: 0.9em;
         }
@@ -95,13 +103,24 @@
                 
                 <form id="login-form">
                     <div class="form-group">
-                        <label for="username">账号/工号/学号</label>
-                        <input type="text" id="username" name="username" required 
-                               placeholder="请输入您的账号" autofocus>
+                        <label for="user-role"><i class="fas fa-user-shield"></i> 登录身份</label>
+                        <select id="user-role" name="role" required>
+                            <option value="" disabled selected>-- 请选择您的身份 --</option>
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                            <option value="admin_edu">教学管理员</option>
+                            <option value="admin_sys">系统管理员</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="password">密码</label>
+                        <label for="username"><i class="fas fa-user"></i> 账号/工号/学号</label>
+                        <input type="text" id="username" name="username" required 
+                               placeholder="请输入您的账号">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password"><i class="fas fa-key"></i> 密码</label>
                         <input type="password" id="password" name="password" required 
                                placeholder="请输入您的密码">
                     </div>
@@ -129,8 +148,8 @@
         </div>
     </footer>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="js/db.js"></script>
-    
     <script src="js/security.js"></script>
     
 </body>

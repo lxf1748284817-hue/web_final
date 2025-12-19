@@ -20,7 +20,7 @@ body {
 /* 侧边导航栏 */
 .sidebar {
     width: 260px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4a90e2;
     color: white;
     padding: 20px 0;
     position: fixed;
@@ -152,7 +152,7 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4a90e2;
     color: white;
     border: none;
     padding: 10px 24px;
@@ -163,8 +163,9 @@ body {
 }
 
 .btn-primary:hover {
+    background: #357abd;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 .btn-cancel {
@@ -224,8 +225,8 @@ body {
 
 .search-bar input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
 .filter-group {
@@ -342,15 +343,15 @@ body {
 
 .btn-enroll {
     background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
+    color: #4a90e2;
+    border: 2px solid #4a90e2;
 }
 
 .btn-enroll:hover {
-    background: #667eea;
+    background: #4a90e2;
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
 }
 
 .btn-enroll:disabled {
@@ -453,6 +454,32 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* 滚动条样式 */
+.materials-list::-webkit-scrollbar,
+.assignments-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.materials-list::-webkit-scrollbar-track,
+.assignments-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.materials-list::-webkit-scrollbar-thumb,
+.assignments-list::-webkit-scrollbar-thumb {
+    background: #bdc3c7;
+    border-radius: 4px;
+}
+
+.materials-list::-webkit-scrollbar-thumb:hover,
+.assignments-list::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6;
 }
 
 .material-item {
@@ -508,12 +535,12 @@ body {
 
 .btn-view {
     background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
+    color: #4a90e2;
+    border: 2px solid #4a90e2;
 }
 
 .btn-view:hover {
-    background: #667eea;
+    background: #4a90e2;
     color: white;
 }
 
@@ -678,7 +705,7 @@ body {
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4a90e2;
     color: white;
 }
 
@@ -766,7 +793,7 @@ body {
 .summary-value {
     font-size: 36px;
     font-weight: 600;
-    color: #667eea;
+    color: #4a90e2;
 }
 
 /* 学期选择器 */
@@ -809,7 +836,7 @@ body {
 }
 
 .grade-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4a90e2;
     color: white;
 }
 
@@ -859,7 +886,7 @@ body {
 
 .btn-view-detail {
     padding: 6px 16px;
-    background: #667eea;
+    background: #4a90e2;
     color: white;
     border: none;
     border-radius: 6px;
@@ -869,7 +896,7 @@ body {
 }
 
 .btn-view-detail:hover {
-    background: #5568d3;
+    background: #357abd;
 }
 
 /* 成绩详情 */
@@ -1056,7 +1083,7 @@ body {
 }
 
 .detail-tab-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #4a90e2;
     color: white;
 }
 

@@ -1,20 +1,35 @@
 /**
- * 首页课程显示模块 (由 [你的名字] 维护)
- * 对整合者友好：
- * 1. 优先尝试从 IndexedDB 加载数据，失败则降级使用内存数据。
- * 2. 逻辑封装在 CourseModule 命名空间下。
+ * 【模块名称】：首页课程展示与筛选模块
+ * 【维护人员】：梁德铭
+ * 【功能描述】：
+ * 1. 实现从 IndexedDB 异步加载课程数据，并具备数据读取失败后的 fallback（备用）展示能力。
+ * 2. 动态生成课程卡片，并根据用户登录状态（localStorage）智能切换按钮交互逻辑（选课/查看）。
+ * 3. 提供实时搜索、院系过滤及学分筛选的复合查询功能。
+ * * 【整合指南】：
+ * 1. 依赖库：确保 HTML 中先引入 CryptoJS (若涉及加密) 和 db.js (BaseDB 接口)。
+ * 2. DOM 绑定：HTML 必须包含 id 为 'course-list' 的容器，以及搜索/过滤所需的 ID 元素。
+ * 3. 数据流：本模块只读。若需增加课程，请在 db.js 的 initialData 或教学管理员模块进行操作。
+ * 4. 路径说明：登录后的“立即选修”按钮跳转路径固定为 'student_side/course_selection.html'。
  */
 const CourseModule = {
-    // 1. 模拟备用数据 (当数据库连接失败或未初始化时使用)
+    // 1. 模拟备用数据 (对齐 db.js 中的学分要求)
     fallbackData: [
-        { id: 'CS101', name: 'Web编程技术', credits: 3.0, department: '计算机学院', teacher: '蔡树彬', intro: '前端实战开发。', requirements: 'C++/Java基础' },
-        { id: 'MA202', name: '高等数学 B', credits: 4.0, department: '数学与统计学院', teacher: '李四', intro: '微积分、线性代数。', requirements: '无' }
+        { 
+            id: 'crs_001', code: 'CS101', name: 'Web 前端开发基础', 
+            teacher: '蔡老师', credits: 3.0, department: '计算机系',
+            category: '必修课', description: '学习 HTML5, CSS3 和现代 JavaScript 核心技术。',
+            prerequisites: '无'
+        },
+        { 
+            id: 'crs_002', code: 'CS102', name: 'Java 程序设计', 
+            teacher: '王教授', credits: 3.0, department: '软件工程系',
+            category: '专业课', description: '深入理解面向对象编程、集合框架及多线程。',
+            prerequisites: '需具备 C 语言基础'
+        }
     ],
 
-    // 缓存从数据库读取的数据，用于前端搜索筛选
     localCache: [],
 
-    // 2. 页面元素获取
     getElements() {
         return {
             container: document.getElementById('course-list'),
@@ -25,119 +40,134 @@ const CourseModule = {
         };
     },
 
-    // 3. 异步获取课程数据
+    // 2. 从 IndexedDB 加载课程
     async loadCourses() {
         try {
-            // 兼容性调用：尝试整合者的全局 openDB 或你的 BaseDB
-            const db = typeof openDB === 'function' ? await openDB() : await BaseDB.open();
-            
+            // 兼容性获取数据库实例
+            const db = typeof BaseDB !== 'undefined' ? await BaseDB.open() : await openDB();
             return new Promise((resolve) => {
                 const transaction = db.transaction(['courses'], 'readonly');
                 const store = transaction.objectStore('courses');
                 const request = store.getAll();
-
                 request.onsuccess = () => {
                     const data = request.result;
-                    // 如果数据库里有课程（对齐小组表的 courses 表），就用数据库的
-                    resolve(data.length > 0 ? data : this.fallbackData);
+                    resolve(data && data.length > 0 ? data : this.fallbackData);
                 };
                 request.onerror = () => resolve(this.fallbackData);
             });
         } catch (err) {
-            console.warn("CourseModule: 无法连接数据库，使用备用数据渲染");
+            console.warn("CourseModule: 数据库加载失败，切换至备用数据");
             return this.fallbackData;
         }
     },
 
-    // 4. 生成卡片 HTML (逻辑解耦)
+    // 3. 生成卡片 HTML (纯文字版)
     createCardHTML(course) {
-        // 从 Session (localStorage) 获取当前用户
+        // 从 localStorage 获取当前登录状态
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
         const isLoggedIn = !!currentUser;
         const isStudent = isLoggedIn && currentUser.role === 'student';
 
+        // 动态逻辑判断
         let btnText = "查看详情";
         let btnClass = "btn-secondary";
-        let btnAction = `alert('请先登录后再进行选课。')`;
+        let btnAction = `alert('请先从右上角登录系统后再进行选课。')`;
 
         if (isStudent) {
             btnText = "立即选修";
-            btnClass = "btn-primary";
-            btnAction = `location.href='../student_side/course_selection.html'`;
+            btnClass = "btn-primary"; // 登录后按钮变色
+            btnAction = `location.href='student_side/course_selection.html'`;
         }
 
         return `
             <article class="course-card">
-                <h3>${course.name} <small>(${course.id})</small></h3>
+                <div class="course-header">
+                    <span class="category-tag">${course.category || '课程'}</span>
+                    <span class="course-id-tag">#${course.code || course.id}</span>
+                </div>
+                
+                <h3>${course.name}</h3>
+                
                 <p class="course-meta">
-                    <span>学分: ${parseFloat(course.credits || 0).toFixed(1)}</span> | 
-                    <span>授课: ${course.teacher || '未知'}</span>
+                    <span>授课教师：${course.teacher || '待定'}</span>
+                    <span>学分：<strong>${parseFloat(course.credits || 0).toFixed(1)}</strong></span>
                 </p>
-                <p class="course-intro">${course.intro || '暂无介绍'}</p>
-                <button class="btn ${btnClass}" onclick="${btnAction}">${btnText}</button>
+                
+                <p class="course-intro">
+                    ${course.description || '暂无详细介绍。'}
+                </p>
+                
+                <div class="course-requirements">
+                    <strong>选课要求：</strong>${course.prerequisites || '无'}
+                </div>
+                
+                <button class="${btnClass}" onclick="${btnAction}">${btnText}</button>
             </article>
         `;
     },
 
-    // 5. 渲染与过滤逻辑
+    // 4. 渲染逻辑
     async render(filterFn = null) {
         const els = this.getElements();
         if (!els.container) return;
 
-        // 第一次加载时获取数据并初始化过滤器
         if (this.localCache.length === 0) {
             this.localCache = await this.loadCourses();
-            this.setupFilters();
+            this.setupFilters(); // 只有第一次加载数据时初始化过滤器
         }
 
         let displayData = filterFn ? this.localCache.filter(filterFn) : this.localCache;
-
-        if (displayData.length === 0) {
-            els.container.innerHTML = '<p class="no-data">暂无符合条件的课程。</p>';
-            return;
-        }
-
-        els.container.innerHTML = displayData.map(c => this.createCardHTML(c)).join('');
+        
+        els.container.innerHTML = displayData.length === 0 
+            ? '<div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px;">未找到符合条件的课程。</div>' 
+            : displayData.map(c => this.createCardHTML(c)).join('');
     },
 
-    // 6. 过滤器初始化
+    // 5. 搜索与筛选逻辑
     setupFilters() {
         const els = this.getElements();
-        if (!els.filterDept) return;
+        
+        // 动态生成学院下拉菜单
+        if (els.filterDept) {
+            const depts = [...new Set(this.localCache.map(c => c.department).filter(d => d))];
+            els.filterDept.innerHTML = '<option value="">所有开课院系</option>';
+            depts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = d;
+                els.filterDept.appendChild(opt);
+            });
+        }
 
-        // 动态提取部门
-        const depts = [...new Set(this.localCache.map(c => c.department))];
-        els.filterDept.innerHTML = '<option value="">所有学院</option>';
-        depts.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = d;
-            els.filterDept.appendChild(opt);
-        });
-
-        // 绑定搜索事件
         const triggerSearch = () => {
             const term = els.searchInput.value.toLowerCase().trim();
             const dept = els.filterDept.value;
             const credit = els.filterCredit.value;
 
             this.render(course => {
-                const matchesSearch = course.name.toLowerCase().includes(term) || course.id.toLowerCase().includes(term);
+                const matchesSearch = course.name.toLowerCase().includes(term) || 
+                                     (course.code && course.code.toLowerCase().includes(term));
                 const matchesDept = !dept || course.department === dept;
-                const matchesCredit = !credit || course.credits == credit;
+                // 注意：学分比对需处理数值类型
+                const matchesCredit = !credit || parseFloat(course.credits) === parseFloat(credit);
+                
                 return matchesSearch && matchesDept && matchesCredit;
             });
         };
 
-        els.searchBtn.addEventListener('click', triggerSearch);
-        els.filterDept.addEventListener('change', triggerSearch);
-        els.filterCredit.addEventListener('change', triggerSearch);
+        // 绑定事件
+        els.searchBtn?.addEventListener('click', triggerSearch);
+        els.filterDept?.addEventListener('change', triggerSearch);
+        els.filterCredit?.addEventListener('change', triggerSearch);
+        
+        // 回车搜索支持
+        els.searchInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') triggerSearch();
+        });
     },
 
-    // 初始化入口
     init() {
         this.render();
     }
 };
 
-// 启动
 document.addEventListener('DOMContentLoaded', () => CourseModule.init());

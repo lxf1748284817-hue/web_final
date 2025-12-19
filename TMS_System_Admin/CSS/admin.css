@@ -342,6 +342,27 @@ body {
     background-color: #c0392b;
 }
 
+<<<<<<< HEAD
+=======
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #138496;
+}
+
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
@@ -441,6 +462,22 @@ body {
     font-size: 14px;
 }
 
+<<<<<<< HEAD
+=======
+/* 操作按钮容器 */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    margin: 2px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 /* 日志类型标签 */
 .log-type {
     padding: 5px 10px;
@@ -805,6 +842,13 @@ input:checked + .slider:before {
     to { transform: translateY(0); opacity: 1; }
 }
 
+<<<<<<< HEAD
+=======
+.modal-large .modal-content {
+    max-width: 700px;
+}
+
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -861,6 +905,24 @@ input:checked + .slider:before {
     margin-top: 5px;
 }
 
+<<<<<<< HEAD
+=======
+.required {
+    color: #e74c3c;
+}
+
+/* 表单行和列样式 */
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.form-column {
+    flex: 1;
+}
+
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 /* 响应式设计 */
 @media (max-width: 1200px) {
     .sidebar {
@@ -968,6 +1030,14 @@ input:checked + .slider:before {
     .settings-input, .settings-select, .settings-textarea {
         min-width: 100%;
     }
+<<<<<<< HEAD
+=======
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 }
 
 @media (max-width: 576px) {
@@ -991,4 +1061,11 @@ input:checked + .slider:before {
         width: 100%;
         justify-content: center;
     }
+<<<<<<< HEAD
+=======
+    
+    .action-buttons {
+        justify-content: center;
+    }
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 }
