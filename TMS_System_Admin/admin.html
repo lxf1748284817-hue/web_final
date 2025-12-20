@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教学管理系统 - 系统管理端</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="CSS/admin.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="logo-area">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span class="logo-text">教学管理系统</span>
+                </div>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-avatar">SA</div>
+                <div class="user-details">
+                    <div class="user-name" id="current-user">系统管理员</div>
+<<<<<<< HEAD
+                    <div class="user-role">System Admin</div>
+=======
+                    <div class="user-role" id="current-role">System Admin</div>
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
+                </div>
+            </div>
+            
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#" class="nav-link active" id="nav-logs">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>操作日志审计</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="nav-backup">
+                        <i class="fas fa-database"></i>
+                        <span>数据备份恢复</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="nav-users">
+                        <i class="fas fa-users-cog"></i>
+                        <span>用户账户管理</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link" id="nav-settings">
+                        <i class="fas fa-cog"></i>
+                        <span>系统设置</span>
+                    </a>
+                </li>
+                <li class="nav-item logout-item">
+                    <a href="index.html" class="nav-link logout-link">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>退出系统</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <div class="status-indicator active"></div>
+                    <span>系统运行正常</span>
+                </div>
+                <div class="server-time" id="server-time"></div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="header">
+                <div class="page-title" id="page-title">操作日志审计</div>
+                <div class="header-actions">
+                    <div class="user-menu">
+                        <div class="user-info-dropdown">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="admin-username">sysadmin</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="dropdown-menu">
+                            <a href="#"><i class="fas fa-user"></i> 个人资料</a>
+                            <a href="#"><i class="fas fa-lock"></i> 修改密码</a>
+                            <div class="divider"></div>
+                            <a href="index.html"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 操作日志审计部分 -->
+            <div class="card" id="logs-section">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        系统操作日志
+                    </h2>
+                    <div>
+                        <button class="btn btn-secondary" id="export-logs-btn">
+                            <i class="fas fa-file-export"></i> 导出日志
+                        </button>
+                        <button class="btn btn-danger" id="clear-logs-btn">
+                            <i class="fas fa-trash-alt"></i> 清理日志
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <label class="filter-label">操作时间</label>
+                        <div class="date-range">
+                            <input type="date" class="filter-input" id="start-date">
+                            <span>至</span>
+                            <input type="date" class="filter-input" id="end-date">
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">操作类型</label>
+                        <select class="filter-select" id="log-type">
+                            <option value="all">全部类型</option>
+                            <option value="login">登录/登出</option>
+                            <option value="modify">数据修改</option>
+                            <option value="delete">数据删除</option>
+                            <option value="backup">数据备份</option>
+                            <option value="restore">数据恢复</option>
+                            <option value="security">安全事件</option>
+                            <option value="system">系统操作</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">操作人员</label>
+                        <input type="text" class="filter-input" id="operator" placeholder="输入用户名">
+                    </div>
+                    
+                    <div class="filter-group" style="align-self: flex-end;">
+                        <button class="btn btn-primary" id="search-logs-btn">
+                            <i class="fas fa-search"></i> 查询日志
+                        </button>
+                        <button class="btn btn-secondary" id="reset-filters-btn">
+                            <i class="fas fa-redo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>操作类型</th>
+                                <th>操作人员</th>
+                                <th>角色</th>
+                                <th>IP地址</th>
+                                <th>操作描述</th>
+                                <th>操作结果</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                            <!-- 日志数据将通过JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="table-footer">
+                    <div class="table-summary" id="logs-summary">
+                        显示 0 条记录，共 0 条
+                    </div>
+                    <div class="pagination" id="logs-pagination">
+                        <!-- 分页按钮将通过JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据备份恢复部分 -->
+            <div class="card" id="backup-section" style="display: none;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-database"></i>
+                        数据备份与恢复
+                    </h2>
+                    <div>
+                        <button class="btn btn-primary" id="manual-backup-btn">
+                            <i class="fas fa-save"></i> 立即备份
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="backup-status">
+                    <div class="status-card">
+                        <div class="status-icon success">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <h3>系统状态</h3>
+                        <p>运行正常</p>
+                        <div class="status-detail">最后检查: <span id="last-check-time">今天 10:30</span></div>
+                    </div>
+                    
+                    <div class="status-card">
+                        <div class="status-icon warning">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>数据库状态</h3>
+                        <p><span id="db-size">3.2</span> GB / <span id="db-total">10</span> GB</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="db-progress" style="width: 32%"></div>
+                        </div>
+                        <div class="status-detail">剩余空间充足</div>
+                    </div>
+                    
+                    <div class="status-card">
+                        <div class="status-icon success">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h3>最后备份</h3>
+                        <p id="last-backup-time">2023-10-26 22:15</p>
+                        <div class="status-detail" id="last-backup-status">自动备份成功</div>
+                    </div>
+                </div>
+                
+                <div class="backup-actions">
+                    <button class="btn btn-primary" id="schedule-backup-btn">
+                        <i class="fas fa-calendar-alt"></i> 设置备份计划
+                    </button>
+                    <button class="btn btn-success" id="restore-backup-btn">
+                        <i class="fas fa-undo"></i> 恢复备份
+                    </button>
+                    <button class="btn btn-secondary" id="backup-history-btn">
+                        <i class="fas fa-history"></i> 查看备份历史
+                    </button>
+                    <button class="btn btn-danger" id="clean-backup-btn">
+                        <i class="fas fa-trash-alt"></i> 清理旧备份
+                    </button>
+                </div>
+                
+                <div class="backup-history">
+                    <h3 class="card-title">
+                        <i class="fas fa-history"></i>
+                        最近备份记录
+                    </h3>
+                    
+                    <div id="backup-history-list">
+                        <!-- 备份历史将通过JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用户账户管理部分 -->
+            <div class="card" id="users-section" style="display: none;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-users-cog"></i>
+                        用户账户管理
+                    </h2>
+                    <div>
+                        <button class="btn btn-primary" id="add-user-btn">
+                            <i class="fas fa-user-plus"></i> 添加用户
+                        </button>
+                        <button class="btn btn-secondary" id="import-users-btn">
+                            <i class="fas fa-file-import"></i> 批量导入
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <label class="filter-label">用户类型</label>
+                        <select class="filter-select" id="user-type-filter">
+                            <option value="all">全部用户</option>
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                            <option value="admin">教学管理员</option>
+                            <option value="sysadmin">系统管理员</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">状态</label>
+                        <select class="filter-select" id="user-status-filter">
+                            <option value="all">全部状态</option>
+                            <option value="active">活跃</option>
+                            <option value="locked">锁定</option>
+                            <option value="inactive">未激活</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="filter-label">搜索</label>
+                        <input type="text" class="filter-input" id="user-search" placeholder="输入用户名、姓名或学号">
+                    </div>
+                    
+                    <div class="filter-group" style="align-self: flex-end;">
+                        <button class="btn btn-primary" id="search-users-btn">
+                            <i class="fas fa-search"></i> 查询
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>用户ID</th>
+                                <th>用户名</th>
+                                <th>姓名</th>
+                                <th>角色</th>
+                                <th>状态</th>
+                                <th>最后登录</th>
+                                <th>注册时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- 用户数据将通过JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="table-footer">
+                    <div class="table-summary" id="users-summary">
+                        显示 0 条记录，共 0 条
+                    </div>
+                    <div class="pagination" id="users-pagination">
+                        <!-- 分页按钮将通过JS动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 系统设置部分 -->
+            <div class="card" id="settings-section" style="display: none;">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-cog"></i>
+                        系统设置
+                    </h2>
+                    <div>
+                        <button class="btn btn-primary" id="save-settings-btn">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="settings-tabs">
+                    <div class="tab-nav">
+                        <button class="tab-link active" data-tab="general">常规设置</button>
+                        <button class="tab-link" data-tab="security">安全设置</button>
+                        <button class="tab-link" data-tab="notification">通知设置</button>
+                        <button class="tab-link" data-tab="backup-settings">备份设置</button>
+                    </div>
+                    
+                    <div class="tab-content active" id="general-tab">
+                        <div class="settings-group">
+                            <h3><i class="fas fa-globe"></i> 系统信息</h3>
+                            <div class="settings-row">
+                                <label>系统名称</label>
+                                <input type="text" class="settings-input" id="system-name" value="教学管理系统">
+                            </div>
+                            <div class="settings-row">
+                                <label>系统版本</label>
+                                <input type="text" class="settings-input" id="system-version" value="v2.1.0" readonly>
+                            </div>
+                            <div class="settings-row">
+                                <label>维护模式</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="maintenance-mode">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="settings-help">启用后只有管理员可以访问系统</span>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3><i class="fas fa-user-shield"></i> 会话设置</h3>
+                            <div class="settings-row">
+                                <label>会话超时时间</label>
+                                <select class="settings-select" id="session-timeout">
+                                    <option value="30">30分钟</option>
+                                    <option value="60" selected>60分钟</option>
+                                    <option value="120">2小时</option>
+                                    <option value="240">4小时</option>
+                                </select>
+                            </div>
+                            <div class="settings-row">
+                                <label>最大登录尝试次数</label>
+                                <input type="number" class="settings-input" id="max-login-attempts" value="5" min="1" max="10">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="security-tab">
+                        <div class="settings-group">
+                            <h3><i class="fas fa-lock"></i> 密码策略</h3>
+                            <div class="settings-row">
+                                <label>最小密码长度</label>
+                                <input type="number" class="settings-input" id="min-password-length" value="8" min="6" max="20">
+                            </div>
+                            <div class="settings-row">
+                                <label>密码复杂度</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="password-complexity" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="settings-help">要求包含字母、数字和特殊字符</span>
+                            </div>
+                            <div class="settings-row">
+                                <label>密码有效期</label>
+                                <select class="settings-select" id="password-expiry">
+                                    <option value="0">永不过期</option>
+                                    <option value="30">30天</option>
+                                    <option value="90" selected>90天</option>
+                                    <option value="180">180天</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3><i class="fas fa-shield-alt"></i> 安全策略</h3>
+                            <div class="settings-row">
+                                <label>启用双因素认证</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="two-factor-auth">
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="settings-help">为管理员账户启用</span>
+                            </div>
+                            <div class="settings-row">
+                                <label>IP白名单</label>
+                                <textarea class="settings-textarea" id="ip-whitelist" placeholder="每行输入一个IP地址，留空表示允许所有IP访问"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="notification-tab">
+                        <div class="settings-group">
+                            <h3><i class="fas fa-bell"></i> 通知设置</h3>
+                            <div class="settings-row">
+                                <label>邮件通知</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="email-notifications" checked>
+                                    <span class="slider"></span>
+                                </label>
+                                <span class="settings-help">发送系统通知邮件</span>
+                            </div>
+                            <div class="settings-row">
+                                <label>SMTP服务器</label>
+                                <input type="text" class="settings-input" id="smtp-server" value="smtp.example.com">
+                            </div>
+                            <div class="settings-row">
+                                <label>通知邮箱</label>
+                                <input type="email" class="settings-input" id="notification-email" value="admin@example.com">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="backup-settings-tab">
+                        <div class="settings-group">
+                            <h3><i class="fas fa-database"></i> 自动备份设置</h3>
+                            <div class="settings-row">
+                                <label>自动备份</label>
+                                <label class="switch">
+                                    <input type="checkbox" id="auto-backup" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-row">
+                                <label>备份频率</label>
+                                <select class="settings-select" id="backup-frequency">
+                                    <option value="daily">每天</option>
+                                    <option value="weekly" selected>每周</option>
+                                    <option value="monthly">每月</option>
+                                </select>
+                            </div>
+                            <div class="settings-row">
+                                <label>备份时间</label>
+                                <input type="time" class="settings-input" id="backup-time" value="22:00">
+                            </div>
+                            <div class="settings-row">
+                                <label>保留备份数量</label>
+                                <input type="number" class="settings-input" id="backup-retention" value="30" min="1" max="365">
+                                <span class="settings-help">天</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 恢复备份模态框 -->
+    <div class="modal" id="restore-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">恢复备份</h3>
+                <button class="close-btn" id="close-restore-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">选择备份点</label>
+                    <select class="filter-select" id="backup-select">
+                        <option value="">请选择要恢复的备份</option>
+                        <option value="backup-1">2023-10-26 22:15 完整备份</option>
+                        <option value="backup-2">2023-10-25 22:15 完整备份</option>
+                        <option value="backup-3">2023-10-24 22:15 完整备份</option>
+                        <option value="backup-4">2023-10-23 22:15 完整备份</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">恢复选项</label>
+                    <div style="margin-top: 10px;">
+                        <label style="display: block; margin-bottom: 8px;">
+                            <input type="radio" name="restore-type" value="full" checked> 完整恢复（覆盖当前所有数据）
+                        </label>
+                        <label style="display: block;">
+                            <input type="radio" name="restore-type" value="partial"> 部分恢复（仅恢复选定的数据表）
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="alert" style="background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-top: 15px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>警告：</strong> 恢复备份将覆盖当前系统中的数据，此操作不可逆，请谨慎操作！
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-restore">取消</button>
+                <button class="btn btn-danger" id="confirm-restore">确认恢复</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 备份计划模态框 -->
+    <div class="modal" id="schedule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">设置自动备份计划</h3>
+                <button class="close-btn" id="close-schedule-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">备份频率</label>
+                    <select class="filter-select" id="backup-frequency-modal">
+                        <option value="daily">每日备份</option>
+                        <option value="weekly" selected>每周备份</option>
+                        <option value="monthly">每月备份</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">备份时间</label>
+                    <input type="time" class="filter-input" id="backup-time-modal" value="22:00">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">保留策略</label>
+                    <select class="filter-select" id="retention-policy">
+                        <option value="7">保留最近7天备份</option>
+                        <option value="14" selected>保留最近14天备份</option>
+                        <option value="30">保留最近30天备份</option>
+                        <option value="90">保留最近90天备份</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">备份类型</label>
+                    <div style="margin-top: 10px;">
+                        <label style="display: block; margin-bottom: 8px;">
+                            <input type="radio" name="backup-type" value="full" checked> 完整备份
+                        </label>
+                        <label style="display: block;">
+                            <input type="radio" name="backup-type" value="incremental"> 增量备份（仅备份变化数据）
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-schedule">取消</button>
+                <button class="btn btn-primary" id="save-schedule">保存设置</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加用户模态框 -->
+    <div class="modal" id="add-user-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加用户</h3>
+                <button class="close-btn" id="close-add-user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="filter-input" id="new-username" placeholder="输入用户名">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">姓名</label>
+                    <input type="text" class="filter-input" id="new-fullname" placeholder="输入用户真实姓名">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">角色</label>
+                    <select class="filter-select" id="new-user-role">
+                        <option value="student">学生</option>
+                        <option value="teacher">教师</option>
+                        <option value="admin">教学管理员</option>
+                        <option value="sysadmin">系统管理员</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">初始密码</label>
+                    <input type="password" class="filter-input" id="new-password" placeholder="输入初始密码">
+                    <div class="form-help">用户首次登录时需要修改密码</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">邮箱</label>
+                    <input type="email" class="filter-input" id="new-email" placeholder="输入邮箱地址">
+                </div>
+<<<<<<< HEAD
+=======
+                
+                <div class="form-group">
+                    <label class="form-label">手机号</label>
+                    <input type="tel" class="filter-input" id="new-phone" placeholder="输入手机号">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">性别</label>
+                            <select class="filter-select" id="new-gender">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="filter-input" id="new-birthday">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">地区</label>
+                    <input type="text" class="filter-input" id="new-region" placeholder="输入地区">
+                </div>
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-add-user">取消</button>
+                <button class="btn btn-primary" id="confirm-add-user">添加用户</button>
+            </div>
+        </div>
+    </div>
+<<<<<<< HEAD
+=======
+    
+    <!-- 编辑用户模态框 -->
+    <div class="modal" id="edit-user-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑用户信息</h3>
+                <button class="close-btn" id="close-edit-user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">用户名</label>
+                            <input type="text" class="filter-input" id="edit-username" readonly>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">姓名 <span class="required">*</span></label>
+                            <input type="text" class="filter-input" id="edit-fullname" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">角色</label>
+                            <select class="filter-select" id="edit-user-role">
+                                <option value="student">学生</option>
+                                <option value="teacher">教师</option>
+                                <option value="admin">教学管理员</option>
+                                <option value="sysadmin">系统管理员</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">状态</label>
+                            <select class="filter-select" id="edit-status">
+                                <option value="active">活跃</option>
+                                <option value="locked">锁定</option>
+                                <option value="inactive">未激活</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">邮箱</label>
+                            <input type="email" class="filter-input" id="edit-email">
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">手机号</label>
+                            <input type="tel" class="filter-input" id="edit-phone">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">性别</label>
+                            <select class="filter-select" id="edit-gender">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label class="form-label">出生日期</label>
+                            <input type="date" class="filter-input" id="edit-birthday">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">地区</label>
+                    <input type="text" class="filter-input" id="edit-region" placeholder="输入地区">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancel-edit-user">取消</button>
+                <button class="btn btn-primary" id="confirm-edit-user">保存修改</button>
+            </div>
+        </div>
+    </div>
+>>>>>>> d67d776047a688475626e64a40d5af12aab653cc
+
+    <script type="module">
+        // 导入统一服务
+        import { dbManager } from '../shared/DatabaseManager.js';
+        import { authService } from '../shared/AuthService.js';
+
+        // 兼容现有代码
+        window.dbManager = dbManager;
+        window.authService = authService;
+
+        // 初始化系统
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 检查登录状态
+                const session = authService.checkSession();
+                if (!session || session.role !== 'admin_sys') {
+                    alert('请先登录系统管理端！');
+                    window.location.href = '../public/login.html?role=admin_sys';
+                    return;
+                }
+
+                // 初始化数据库
+                await dbManager.init();
+                
+                // 加载现有脚本
+                await loadScript('JS/admin.js');
+
+            } catch (error) {
+                console.error('❌ 系统管理端初始化失败:', error);
+                alert('系统初始化失败，请刷新页面重试');
+            }
+        });
+
+        // 动态加载脚本
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+    </script>
+</body>
+</html>
