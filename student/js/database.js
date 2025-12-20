@@ -9,7 +9,7 @@
  */
 
 const DB_NAME = 'CurriculumDesignDB';  // 统一数据库名称
-const DB_VERSION = 10;  // 升级版本号以触发数据库重建
+const DB_VERSION = 11;  // 统一升级至版本 11
 let db = null;
 
 // 初始化数据库

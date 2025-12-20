@@ -5,7 +5,7 @@
 
 const DB_CONFIG = {
     name: 'CurriculumDesignDB',
-    version: 2, // 增加版本号以强制数据库升级
+    version: 11, // 统一版本号，以 admin 为准
     stores: {
         users: { keyPath: 'id' },
         classes: { keyPath: 'id' },
@@ -15,7 +15,8 @@ const DB_CONFIG = {
         grades: { keyPath: 'id' },
         homeworkAssignments: { keyPath: 'id' },
         examAssignments: { keyPath: 'id' },
-        submissions: { keyPath: 'id' }
+        submissions: { keyPath: 'id' },
+        student_courses: { keyPath: 'id' }
     }
 };
 
