@@ -289,18 +289,49 @@
         </div>
     </template>
 
-    <script type="module">
-        // 导入统一服务
-        import { dbManager } from '../shared/DatabaseManager.js';
-        import { authService } from '../shared/AuthService.js';
-
-        // 兼容现有代码
-        window.dbManager = dbManager;
-        window.authService = authService;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="../shared/DatabaseManager.js"></script>
+    <script src="../shared/AuthService.js"></script>
+    <script>
+        // 兼容现有代码 - 添加旧的数据库接口
+        window.getDataById = async function(storeName, id) {
+            return await window.dbManager.get(storeName, id);
+        };
+        
+        window.getDataByIndex = async function(storeName, indexName, value) {
+            // 表名映射：student_courses -> enrollments
+            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
+            const data = await window.dbManager.getAll(actualStoreName, { index: indexName, value: value });
+            return data || [];
+        };
+        
+        window.getAllData = async function(storeName) {
+            // 表名映射：student_courses -> enrollments
+            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
+            return await window.dbManager.getAll(actualStoreName);
+        };
+        
+        window.addData = async function(storeName, data) {
+            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
+            return await window.dbManager.add(actualStoreName, data);
+        };
+        
+        window.updateData = async function(storeName, data) {
+            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
+            return await window.dbManager.update(actualStoreName, data);
+        };
+        
+        window.deleteData = async function(storeName, id) {
+            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
+            return await window.dbManager.delete(actualStoreName, id);
+        };
 
         // 初始化系统
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // 初始化数据库
+                await dbManager.init();
+                
                 // 检查登录状态
                 const session = authService.checkSession();
                 if (!session || session.role !== 'student') {
@@ -308,13 +339,17 @@
                     window.location.href = '../public/login.html?role=student';
                     return;
                 }
-
-                // 初始化数据库
-                await dbManager.init();
                 
                 // 加载现有脚本
                 await loadScript('js/api.js');
                 await loadScript('js/student.js');
+                
+                // 手动初始化 student.js（因为它的 load 事件已经错过了）
+                if (typeof updateUserInfo === 'function') {
+                    updateUserInfo();
+                    setupNavigation(); 
+                    loadPage('courses');
+                }
 
             } catch (error) {
                 console.error('❌ 学生端初始化失败:', error);

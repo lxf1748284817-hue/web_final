@@ -1136,8 +1136,26 @@ function drawScoreChart(details) {
 
 function handleLogout() {
     if (confirm('确定要退出登录吗？')) {
-        // 实际应该调用登录模块的退出接口
-        alert('退出登录成功');
-        // window.location.href = '/login.html';
+        try {
+            // 清除用户登录状态
+            localStorage.removeItem('currentUser');
+            
+            // 清除登录会话信息
+            if (typeof window.authService !== 'undefined') {
+                window.authService.logout();
+            }
+            
+            // 显示退出成功提示
+            alert('退出登录成功');
+            
+            // 跳转到登录页面
+            setTimeout(() => {
+                window.location.href = '../public/login.html';
+            }, 1000);
+            
+        } catch (error) {
+            console.error('退出登录失败:', error);
+            alert('退出登录失败，请重试');
+        }
     }
 }

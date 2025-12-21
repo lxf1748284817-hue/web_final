@@ -150,7 +150,7 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="../shared/DatabaseManager.js"></script>
-    <script src="js/security.js"></script>
+    <script src="../shared/AuthService.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -158,6 +158,16 @@
                 if (typeof dbManager !== 'undefined') {
                     await dbManager.init();
                 }
+
+                // 使用全局认证服务实例
+                if (typeof authService !== 'undefined') {
+                    await authService.init();
+                } else {
+                    throw new Error('认证服务未加载，请检查AuthService.js引入');
+                }
+
+                // 绑定登录表单事件
+                bindLoginForm();
 
                 // 处理URL参数
                 handleUrlParams();
@@ -170,6 +180,59 @@
                 }
             }
         });
+
+        // 绑定登录表单事件
+        function bindLoginForm() {
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await handleLogin();
+                });
+            }
+        }
+
+        // 处理登录逻辑
+        async function handleLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const roleSelect = document.getElementById('user-role');
+            const role = roleSelect ? roleSelect.value : '';
+            const errorEl = document.getElementById('login-error-message');
+
+            // 清除错误信息
+            if (errorEl) errorEl.textContent = '';
+
+            // 验证输入
+            if (!role) {
+                if (errorEl) errorEl.textContent = '请选择登录身份。';
+                return;
+            }
+            if (!username || !password) {
+                if (errorEl) errorEl.textContent = '账号和密码不能为空。';
+                return;
+            }
+
+            try {
+                // 使用AuthService进行登录
+                const result = await authService.login(username, password, role);
+                
+                if (result.success) {
+                    if (result.isFirstLogin) {
+                        // 首次登录，跳转到密码重置页面
+                        alert(result.message);
+                        window.location.href = 'reset_password.html?user=' + username;
+                    } else {
+                        // 登录成功，跳转到对应页面
+                        alert('登录成功！正在进入系统...');
+                        authService.redirectByRole(role);
+                    }
+                }
+            } catch (error) {
+                console.error('登录失败:', error);
+                if (errorEl) errorEl.textContent = error.message;
+            }
+        }
 
         // 处理URL参数，自动选择角色
         function handleUrlParams() {

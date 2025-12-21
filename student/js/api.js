@@ -179,7 +179,7 @@ async function exportScoresToXLS(planId) {
  */
 async function getStudentCourseStats(studentId) {
     try {
-        const enrollments = await getDataByIndex('student_courses', 'studentId', studentId);
+        const enrollments = await getDataByIndex('enrollments', 'studentId', studentId);
         
         // 简化统计（实际应该从作业提交等数据统计）
         const assignments = await getAllData('assignments');

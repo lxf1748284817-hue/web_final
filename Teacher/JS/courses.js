@@ -47,15 +47,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function initPage() {
         try {
-            // 确保数据管理器已初始化
-            if (!window.courseManager) {
-                console.warn('数据管理器未初始化，等待DOM加载完成');
+            // 确保统一数据库管理器已初始化
+            if (!window.dbManager) {
+                console.warn('数据库管理器未初始化，等待加载完成');
                 setTimeout(initPage, 100);
                 return;
             }
             
-            // 从IndexedDB加载课程数据
-            courses = await window.courseManager.getCourses();
+            // 初始化数据库
+            await window.dbManager.init();
+            
+            // 从统一数据库加载课程数据
+            courses = await window.dbManager.getAll('courses');
             console.log('从IndexedDB加载课程数据:', courses.length, '门课程');
             
             // 如果本地没有课程数据，显示空状态，但不触发数据重置
@@ -85,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('检测到课程数据更新事件');
         // 只有在事件来自其他页面时才重新加载数据
         if (event.detail && event.detail.source !== 'courses') {
-            window.courseManager.getCourses().then(updatedCourses => {
+            window.dbManager.getAll('courses').then(updatedCourses => {
                 courses = updatedCourses;
                 
                 // 根据当前筛选条件重新渲染
@@ -102,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
             console.log('页面重新可见，刷新课程数据');
-            window.courseManager.getCourses().then(updatedCourses => {
+            window.dbManager.getAll('courses').then(updatedCourses => {
                 courses = updatedCourses;
                 renderCourses(courses);
                 updateEmptyState();
@@ -736,7 +739,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 验证课程代码是否已存在（排除当前编辑的课程）
-            const existingCourses = await window.courseManager.getCourses();
+            const existingCourses = await window.dbManager.getAll('courses');
             const existingCourse = existingCourses.find(course => 
                 course.code === courseCode && course.id !== currentEditCourseId
             );
@@ -747,7 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 创建课程对象
             const courseData = {
-                id: currentEditCourseId || window.courseManager.generateCourseId(),
+                id: currentEditCourseId || 'course_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7),
                 name: courseName,
                 code: courseCode,
                 credit: courseCredit,
@@ -771,10 +774,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 保存到IndexedDB
-            await window.courseManager.saveCourse(courseData);
+            await window.dbManager.add('courses', courseData);
             
             // 重新加载课程数据
-            courses = await window.courseManager.getCourses();
+            courses = await window.dbManager.getAll('courses');
             console.log('保存后课程数据:', courses.length, '门课程');
             
             // 重新渲染课程列表
@@ -1160,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.courseManager.saveCourse(course);
+                await window.dbManager.add('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);
@@ -1192,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.courseManager.saveCourse(course);
+                await window.dbManager.add('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);
@@ -1224,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.courseManager.saveCourse(course);
+                await window.dbManager.add('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);
@@ -1253,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (confirm(`确定要删除课程"${course.name}"吗？此操作不可恢复。`)) {
                 // 从IndexedDB删除课程
-                await window.courseManager.deleteCourse(id);
+                await window.dbManager.delete('courses', id);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 courses = courses.filter(c => c.id !== id);

@@ -21,10 +21,10 @@ const ROLE_DISPLAY_NAMES = {
 };
 
 const ROUTES = {
-    STUDENT: './student/index.html',
-    TEACHER: './Teacher/HTML/dashboard.html',
-    ADMIN_EDU: './admin/admin.html',
-    ADMIN_SYS: './TMS_System_Admin/admin.html'
+    STUDENT: '../student/index.html',
+    TEACHER: '../Teacher/HTML/dashboard.html',
+    ADMIN_EDU: '../admin/admin.html',
+    ADMIN_SYS: '../TMS_System_Admin/admin.html'
 };
 
 class AuthService {
@@ -258,9 +258,19 @@ class AuthService {
      * 根据角色跳转到对应页面
      */
     redirectByRole(role) {
-        const route = ROUTES[role];
+        // 将角色字符串映射到ROUTES的键名
+        const roleMap = {
+            'student': 'STUDENT',
+            'teacher': 'TEACHER',
+            'admin_edu': 'ADMIN_EDU',
+            'sysadmin': 'ADMIN_SYS'
+        };
+        
+        const routeKey = roleMap[role];
+        const route = ROUTES[routeKey];
+        
         if (route) {
-            alert(`登录成功！正在进入${ROLE_DISPLAY_NAMES[role]}端...`);
+            alert(`登录成功！正在进入${this.getRoleDisplayName(role)}端...`);
             window.location.href = route;
         } else {
             console.error('❌ 未知角色:', role);
@@ -395,6 +405,41 @@ class AuthService {
      */
     getRoleDisplayName(role) {
         return ROLE_DISPLAY_NAMES[role] || role;
+    }
+
+    /**
+     * 用户退出登录
+     */
+    logout() {
+        try {
+            const currentUser = this.currentUser;
+            
+            // 清除当前用户信息
+            this.currentUser = null;
+            
+            // 清除本地存储的会话信息
+            localStorage.removeItem(this.config.sessionKey);
+            
+            // 清除登录尝试记录
+            if (currentUser) {
+                delete this.loginAttempts[currentUser.username];
+            }
+            
+            // 记录退出日志
+            if (currentUser) {
+                this._logActivity(currentUser.id, 'logout', 'system', {
+                    username: currentUser.username,
+                    role: currentUser.role
+                });
+            }
+            
+            console.log('✅ 用户退出登录成功');
+            return true;
+            
+        } catch (error) {
+            console.error('❌ 退出登录失败:', error);
+            return false;
+        }
     }
 
     /**

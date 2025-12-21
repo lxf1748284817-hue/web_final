@@ -12,19 +12,37 @@
  * 4. 路径说明：登录后的“立即选修”按钮跳转路径固定为 'student_side/course_selection.html'。
  */
 const CourseModule = {
-    // 1. 模拟备用数据 (对齐 db.js 中的学分要求)
+    // 1. 模拟备用数据 (对齐统一数据库)
     fallbackData: [
         { 
-            id: 'crs_001', code: 'CS101', name: 'Web 前端开发基础', 
-            teacher: '蔡老师', credits: 3.0, department: '计算机系',
-            category: '必修课', description: '学习 HTML5, CSS3 和现代 JavaScript 核心技术。',
-            prerequisites: '无'
+            id: 'course_cs101', code: 'CS101', name: '数据结构与算法', 
+            teacher: '王老师', credits: 3, department: '计算机系',
+            category: '必修课', description: '计算机科学核心课程，学习数据结构和算法设计',
+            prerequisites: '无', status: 'published'
         },
         { 
-            id: 'crs_002', code: 'CS102', name: 'Java 程序设计', 
-            teacher: '王教授', credits: 3.0, department: '软件工程系',
-            category: '专业课', description: '深入理解面向对象编程、集合框架及多线程。',
-            prerequisites: '需具备 C 语言基础'
+            id: 'course_ma202', code: 'MA202', name: '高等数学', 
+            teacher: '李老师', credits: 4, department: '数学系',
+            category: '必修课', description: '大学数学基础课程，涵盖微积分和线性代数',
+            prerequisites: '无', status: 'published'
+        },
+        { 
+            id: 'course_phy105', code: 'PHY105', name: '大学物理', 
+            teacher: '张老师', credits: 3, department: '物理系',
+            category: '必修课', description: '物理学基础课程，涵盖力学、电磁学等',
+            prerequisites: '无', status: 'published'
+        },
+        { 
+            id: 'course_eng201', code: 'ENG201', name: '大学英语', 
+            teacher: '王老师', credits: 2, department: '外语系',
+            category: '必修课', description: '英语语言学习课程，提高听说读写能力',
+            prerequisites: '无', status: 'published'
+        },
+        { 
+            id: 'course_se301', code: 'SE301', name: '软件工程', 
+            teacher: '李老师', credits: 3, department: '软件工程系',
+            category: '专业课', description: '软件开发流程和方法论课程',
+            prerequisites: '需掌握编程基础', status: 'published'
         }
     ],
 
@@ -80,10 +98,14 @@ const CourseModule = {
         // 动态逻辑判断 - 统一显示立即选修
         let btnText = "立即选修";
         let btnClass = "btn-primary";
-        let btnAction = `alert('请先从右上角登录系统后再进行选课。')`;
+        let btnAction = '';
 
-        if (isStudent) {
-            btnAction = `location.href='student_side/course_selection.html'`;
+        if (!isLoggedIn) {
+            btnAction = `alert('请先从右上角登录系统后再进行选课。')`;
+        } else if (!isStudent) {
+            btnAction = `alert('您当前不是学生角色，无法进行选课。')`;
+        } else {
+            btnAction = `location.href='../student/index.html'`;
         }
 
         return `

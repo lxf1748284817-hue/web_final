@@ -9,7 +9,7 @@ const DATABASE_CONFIG = {
     version: 12,
     stores: [
         'users', 'classes', 'courses', 'plans', 'scores',
-        'enrollments', 'course_materials', 'assignments', 'submissions',
+        'enrollments', 'course_materials', 'assignments', 'assignment_submissions',
         'exams', 'exam_results', 'audit_logs', 'system_settings', 'data_backups'
     ]
 };
@@ -108,13 +108,29 @@ class DatabaseManager {
                 store.createIndex('code', 'code', { unique: true });
                 store.createIndex('teacherId', 'teacherId', { unique: false });
                 break;
+            case 'plans':
+                store.createIndex('courseId', 'courseId', { unique: false });
+                store.createIndex('teacherId', 'teacherId', { unique: false });
+                store.createIndex('semester', 'semester', { unique: false });
+                break;
             case 'enrollments':
                 store.createIndex('studentId', 'studentId', { unique: false });
+                store.createIndex('planId', 'planId', { unique: false });
+                break;
+            case 'course_materials':
+                store.createIndex('planId', 'planId', { unique: false });
                 store.createIndex('courseId', 'courseId', { unique: false });
+                break;
+            case 'assignments':
+                store.createIndex('planId', 'planId', { unique: false });
+                break;
+            case 'assignment_submissions':
+                store.createIndex('assignmentId', 'assignmentId', { unique: false });
+                store.createIndex('studentId', 'studentId', { unique: false });
                 break;
             case 'scores':
                 store.createIndex('studentId', 'studentId', { unique: false });
-                store.createIndex('courseId', 'courseId', { unique: false });
+                store.createIndex('planId', 'planId', { unique: false });
                 break;
         }
     }
@@ -223,38 +239,79 @@ class DatabaseManager {
             stores.users.add({ id: 'tea_002', username: 'teacher2', name: '李老师', role: 'teacher', phone: '13900139002' })
         ]);
 
-        // 3. 课程 (2门)
+        // 3. 课程 (5门完整课程数据)
         await Promise.all([
             stores.courses.add({ 
-                id: 'crs_001', 
+                id: 'course_cs101', 
                 code: 'CS101', 
-                name: '计算机基础', 
+                name: '数据结构与算法', 
                 credits: 3, 
                 hours: 48, 
-                description: '计算机基础课程',
+                description: '计算机科学核心课程，学习数据结构和算法设计',
                 teacher: '王老师',
                 department: '计算机系',
-                category: '必修课',
-                prerequisites: '无'
+                category: 'required',
+                prerequisites: '无',
+                status: 'published'
             }),
             stores.courses.add({ 
-                id: 'crs_002', 
-                code: 'CS102', 
-                name: '数据结构', 
+                id: 'course_ma202', 
+                code: 'MA202', 
+                name: '高等数学', 
                 credits: 4, 
                 hours: 64, 
-                description: '数据结构与算法',
+                description: '大学数学基础课程，涵盖微积分和线性代数',
                 teacher: '李老师',
-                department: '计算机系', 
-                category: '专业课',
-                prerequisites: '需掌握编程基础'
+                department: '数学系',
+                category: 'required',
+                prerequisites: '无',
+                status: 'published'
+            }),
+            stores.courses.add({ 
+                id: 'course_phy105', 
+                code: 'PHY105', 
+                name: '大学物理', 
+                credits: 3, 
+                hours: 48, 
+                description: '物理学基础课程，涵盖力学、电磁学等',
+                teacher: '张老师',
+                department: '物理系',
+                category: 'required',
+                prerequisites: '无',
+                status: 'published'
+            }),
+            stores.courses.add({ 
+                id: 'course_eng201', 
+                code: 'ENG201', 
+                name: '大学英语', 
+                credits: 2, 
+                hours: 32, 
+                description: '英语语言学习课程，提高听说读写能力',
+                teacher: '王老师',
+                department: '外语系',
+                category: 'required',
+                prerequisites: '无',
+                status: 'published'
+            }),
+            stores.courses.add({ 
+                id: 'course_se301', 
+                code: 'SE301', 
+                name: '软件工程', 
+                credits: 3, 
+                hours: 48, 
+                description: '软件开发流程和方法论课程',
+                teacher: '李老师',
+                department: '软件工程系',
+                category: 'elective',
+                prerequisites: '需掌握编程基础',
+                status: 'published'
             })
         ]);
 
         // 4. 授课计划 (2个)
         await Promise.all([
-            stores.plans.add({ id: 'plan_001', courseId: 'crs_001', teacherId: 'tea_001', semester: '2024-2025-1', classroom: 'A101', timeSlots: '周一 1-2节' }),
-            stores.plans.add({ id: 'plan_002', courseId: 'crs_002', teacherId: 'tea_002', semester: '2024-2025-1', classroom: 'B202', timeSlots: '周三 3-4节' })
+            stores.plans.add({ id: 'plan_001', courseId: 'course_cs101', teacherId: 'tea_001', semester: '2024-1', classroom: 'A101', schedule: '周一 1-2节', capacity: 50, enrolled: 0 }),
+            stores.plans.add({ id: 'plan_002', courseId: 'course_ma202', teacherId: 'tea_002', semester: '2024-1', classroom: '大礼堂', schedule: '周五 7-8节', capacity: 100, enrolled: 0 })
         ]);
 
         // 5. 成绩 (4条，覆盖不同状态)
@@ -265,7 +322,7 @@ class DatabaseManager {
             stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' })
         ]);
 
-        console.log('✅ admin模块最小测试数据生成完成');
+        console.log('✅ admin模块完整测试数据生成完成');
     }
 
     /**

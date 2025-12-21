@@ -6,6 +6,11 @@
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('=== 成绩页面开始加载 ===');
     
+    // 初始化统一数据库
+    if (window.dbManager) {
+        await window.dbManager.init();
+    }
+    
     // 全局变量
     let currentCourse = null;
     let courses = [];
@@ -53,7 +58,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function init() {
         try {
             // 从IndexedDB加载课程数据
-            courses = await window.courseManager.getPublishedCourses();
+            await window.dbManager.init();
+            courses = await window.dbManager.getAll('courses');
             
             // 初始化课程卡片
             await initCourseCards();
@@ -85,7 +91,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             // 监听课程数据更新事件
             window.addEventListener('courseDataUpdated', async function() {
-                courses = await window.courseManager.getPublishedCourses();
+                await window.dbManager.init();
+            courses = await window.dbManager.getAll('courses');
                 await initCourseCards();
                 
                 // 如果当前课程不存在了，切换到第一个课程
