@@ -11,7 +11,7 @@
 async function getStudentsByPlan(planId) {
     try {
         // 获取该开课计划的所有选课记录
-        const enrollments = await getDataByIndex('student_courses', 'planId', planId);
+        const enrollments = await getDataByIndex('enrollments', 'planId', planId);
         
         // 获取学生详细信息
         const students = [];

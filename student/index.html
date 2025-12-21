@@ -299,31 +299,24 @@
         };
         
         window.getDataByIndex = async function(storeName, indexName, value) {
-            // 表名映射：student_courses -> enrollments
-            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
-            const data = await window.dbManager.getAll(actualStoreName, { index: indexName, value: value });
+            const data = await window.dbManager.getAll(storeName, { index: indexName, value: value });
             return data || [];
         };
         
         window.getAllData = async function(storeName) {
-            // 表名映射：student_courses -> enrollments
-            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
-            return await window.dbManager.getAll(actualStoreName);
+            return await window.dbManager.getAll(storeName);
         };
         
         window.addData = async function(storeName, data) {
-            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
-            return await window.dbManager.add(actualStoreName, data);
+            return await window.dbManager.add(storeName, data);
         };
         
         window.updateData = async function(storeName, data) {
-            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
-            return await window.dbManager.update(actualStoreName, data);
+            return await window.dbManager.update(storeName, data);
         };
         
         window.deleteData = async function(storeName, id) {
-            const actualStoreName = storeName === 'student_courses' ? 'enrollments' : storeName;
-            return await window.dbManager.delete(actualStoreName, id);
+            return await window.dbManager.delete(storeName, id);
         };
 
         // 初始化系统

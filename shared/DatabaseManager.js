@@ -116,6 +116,8 @@ class DatabaseManager {
             case 'enrollments':
                 store.createIndex('studentId', 'studentId', { unique: false });
                 store.createIndex('planId', 'planId', { unique: false });
+                store.createIndex('status', 'status', { unique: false });
+                store.createIndex('enrollDate', 'enrollDate', { unique: false });
                 break;
             case 'course_materials':
                 store.createIndex('planId', 'planId', { unique: false });
@@ -184,14 +186,16 @@ class DatabaseManager {
      */
     async _seedInitialData() {
         // 检查是否需要admin模块的完整数据
-        const tx = this.db.transaction(['users', 'classes', 'courses', 'plans', 'scores'], 'readwrite');
+        const tx = this.db.transaction(['users', 'classes', 'courses', 'plans', 'scores', 'course_materials', 'assignments'], 'readwrite');
         
         const stores = {
             users: tx.objectStore('users'),
             classes: tx.objectStore('classes'),
             courses: tx.objectStore('courses'),
             plans: tx.objectStore('plans'),
-            scores: tx.objectStore('scores')
+            scores: tx.objectStore('scores'),
+            course_materials: tx.objectStore('course_materials'),
+            assignments: tx.objectStore('assignments')
         };
         
         // 检查各个表的数据
@@ -320,6 +324,89 @@ class DatabaseManager {
             stores.scores.add({ id: 'score_002', coursePlanId: 'plan_001', studentId: 'stu_002', quiz: 75, midterm: 70, final: 72, total: 72, status: 'published' }),
             stores.scores.add({ id: 'score_003', coursePlanId: 'plan_001', studentId: 'stu_003', quiz: 92, midterm: 88, final: 95, total: 92, status: 'unpublished' }),
             stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' })
+        ]);
+
+        // 6. 课程资料 - 为数据结构与算法课程添加资料
+        await Promise.all([
+            // PDF课件
+            stores.course_materials.add({
+                id: 'mat_course_cs101_pdf_001',
+                courseId: 'course_cs101',
+                planId: 'plan_001',
+                title: '数据结构与算法导论',
+                description: '第一章：数据结构基本概念与算法复杂度分析',
+                type: 'pdf',
+                fileUrl: 'https://example.com/documents/dsa-intro.pdf',
+                fileSize: '2.5MB',
+                uploader: '王老师',
+                uploadDate: '2024-01-15',
+                status: 'published'
+            }),
+            // 图片资料
+            stores.course_materials.add({
+                id: 'mat_course_cs101_img_001',
+                courseId: 'course_cs101',
+                planId: 'plan_001',
+                title: '算法流程图示例',
+                description: '常见排序算法的流程图示例',
+                type: 'image',
+                fileUrl: 'https://picsum.photos/800/600',
+                fileSize: '150KB',
+                uploader: '王老师',
+                uploadDate: '2024-01-16',
+                status: 'published'
+            }),
+            // 视频资料
+            stores.course_materials.add({
+                id: 'mat_course_cs101_video_001',
+                courseId: 'course_cs101',
+                planId: 'plan_001',
+                title: '数据结构实现演示',
+                description: '链表、栈、队列等数据结构的代码实现演示',
+                type: 'video',
+                fileUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+                fileSize: '15.2MB',
+                duration: '45:30',
+                uploader: '王老师',
+                uploadDate: '2024-01-17',
+                status: 'published'
+            })
+        ]);
+
+        // 7. 作业 - 为数据结构与算法课程添加作业
+        await Promise.all([
+            // 作业1：链表实现
+            stores.assignments.add({
+                id: 'assign_course_cs101_001',
+                courseId: 'course_cs101',
+                planId: 'plan_001',
+                title: '链表数据结构实现',
+                description: '实现单链表的基本操作：创建、插入、删除、查找等',
+                type: 'homework',
+                deadline: '2024-02-15',
+                maxScore: 100,
+                requirements: '使用C语言或Java实现，提交源代码和测试用例',
+                status: 'active',
+                createdBy: '王老师',
+                createdAt: '2024-01-20',
+                submissionCount: 0
+            }),
+            // 作业2：排序算法
+            stores.assignments.add({
+                id: 'assign_course_cs101_002',
+                courseId: 'course_cs101',
+                planId: 'plan_001',
+                title: '排序算法比较',
+                description: '实现并比较冒泡排序、快速排序、归并排序的性能',
+                type: 'homework',
+                deadline: '2024-02-28',
+                maxScore: 100,
+                requirements: '分析算法时间复杂度，提交实验报告和代码',
+                status: 'active',
+                createdBy: '王老师',
+                createdAt: '2024-01-25',
+                submissionCount: 0
+            })
         ]);
 
         console.log('✅ admin模块完整测试数据生成完成');

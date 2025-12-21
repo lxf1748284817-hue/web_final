@@ -110,8 +110,8 @@ async function loadCourses() {
     try {
         // ✅ 新结构：加载开课计划（plans），而不是课程库（courses）
         const plans = await getAllData('plans');
-        const studentCourses = await getDataByIndex('student_courses', 'studentId', currentStudent.id);
-        const enrolledPlanIds = studentCourses.map(sc => sc.planId);  // ✅ 改为 planId
+        const enrollments = await getDataByIndex('enrollments', 'studentId', currentStudent.id);
+        const enrolledPlanIds = enrollments.map(e => e.planId);
         
         await displayCourses(plans, enrolledPlanIds);
     } catch (error) {
@@ -192,8 +192,8 @@ async function filterAndSearchCourses() {
     
     // ✅ 改为加载 plans
     const plans = await getAllData('plans');
-    const studentCourses = await getDataByIndex('student_courses', 'studentId', currentStudent.id);
-    const enrolledPlanIds = studentCourses.map(sc => sc.planId);
+    const enrollments = await getDataByIndex('enrollments', 'studentId', currentStudent.id);
+    const enrolledPlanIds = enrollments.map(e => e.planId);
     
     // ✅ 筛选并获取课程、教师信息
     const filteredPlans = [];
@@ -274,8 +274,14 @@ async function confirmEnroll() {
         // ✅ 生成选课记录 ID
         const enrollmentId = `sc_${currentStudent.id}_${selectedCourseId}`;
         
+        // 调试：输出选课信息
+        console.log('🔍 选课调试信息:');
+        console.log('学生ID:', currentStudent.id);
+        console.log('开课计划ID:', selectedCourseId);
+        console.log('选课记录ID:', enrollmentId);
+        
         // 添加选课记录
-        await addData('student_courses', {
+        await addData('enrollments', {
             id: enrollmentId,
             studentId: currentStudent.id,
             planId: selectedCourseId,  // ✅ 改为 planId
@@ -283,10 +289,22 @@ async function confirmEnroll() {
             status: 'active'
         });
         
+        // 调试：验证选课记录是否成功添加
+        const addedEnrollment = await getDataById('enrollments', enrollmentId);
+        if (addedEnrollment) {
+            console.log('✅ 选课记录成功录入数据库:', addedEnrollment);
+        } else {
+            console.error('❌ 选课记录添加失败');
+        }
+        
         // 更新开课计划人数
         const plan = await getDataById('plans', selectedCourseId);
         plan.enrolled = (plan.enrolled || 0) + 1;
         await updateData('plans', plan);
+        
+        // 调试：验证开课计划人数更新
+        const updatedPlan = await getDataById('plans', selectedCourseId);
+        console.log('📊 开课计划更新后人数:', updatedPlan.enrolled);
         
         alert('选课成功！');
         closeEnrollModal();
@@ -427,7 +445,7 @@ async function calculateCourseProgress(planId) {
 
 // 显示我的课程列表
 async function displayMyCourses(filter) {
-    const enrollments = await getDataByIndex('student_courses', 'studentId', currentStudent.id);
+    const enrollments = await getDataByIndex('enrollments', 'studentId', currentStudent.id);
     const myCoursesList = document.getElementById('myCoursesList');
     
     if (enrollments.length === 0) {
@@ -452,7 +470,7 @@ async function displayMyCourses(filter) {
         // ✅ 如果进度达到100%，自动更新为已完成状态
         if (progress === 100 && enrollment.status !== 'completed') {
             enrollment.status = 'completed';
-            await updateData('student_courses', enrollment);
+            await updateData('enrollments', enrollment);
         }
         
         // 根据筛选条件过滤
@@ -505,7 +523,7 @@ async function unenrollCourse(enrollmentId, planId) {
     
     try {
         // 删除选课记录
-        await deleteData('student_courses', enrollmentId);
+        await deleteData('enrollments', enrollmentId);
         
         // 更新开课计划人数
         const plan = await getDataById('plans', planId);
@@ -521,6 +539,54 @@ async function unenrollCourse(enrollmentId, planId) {
     } catch (error) {
         console.error('退选失败:', error);
         alert('退选失败，请重试');
+    }
+}
+
+// 调试：查看所有选课记录
+async function debugViewEnrollments() {
+    try {
+        console.log('🔍 开始调试：查看所有选课记录');
+        
+        // 获取所有选课记录
+        const enrollments = await getAllData('enrollments');
+        console.log('📋 选课记录总数:', enrollments.length);
+        
+        if (enrollments.length === 0) {
+            console.log('📭 数据库中没有选课记录');
+            return;
+        }
+        
+        // 显示每条选课记录的详细信息
+        console.log('📊 选课记录详情:');
+        for (const enrollment of enrollments) {
+            console.log('--- 选课记录 ---');
+            console.log('ID:', enrollment.id);
+            console.log('学生ID:', enrollment.studentId);
+            console.log('开课计划ID:', enrollment.planId);
+            console.log('选课日期:', enrollment.enrollDate);
+            console.log('状态:', enrollment.status);
+            
+            // 获取学生信息
+            const student = await getDataById('users', enrollment.studentId);
+            if (student) {
+                console.log('学生姓名:', student.name);
+            }
+            
+            // 获取开课计划信息
+            const plan = await getDataById('plans', enrollment.planId);
+            if (plan) {
+                const course = await getDataById('courses', plan.courseId);
+                if (course) {
+                    console.log('课程名称:', course.name);
+                }
+                console.log('教室:', plan.classroom);
+                console.log('时间:', plan.schedule);
+            }
+            console.log('----------------');
+        }
+        
+    } catch (error) {
+        console.error('❌ 调试查看选课记录失败:', error);
     }
 }
 
