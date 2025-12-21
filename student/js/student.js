@@ -779,65 +779,93 @@ function downloadMaterial(url, name) {
 
 // 加载课程作业
 async function loadCourseAssignments(planId) {
-    const content = document.getElementById('courseDetailContent');
-    const assignments = await getDataByIndex('assignments', 'planId', planId);  // ✅ 改为 planId
+    console.log('🔍 开始加载课程作业，planId:', planId);
     
-    if (assignments.length === 0) {
+    try {
+        const content = document.getElementById('courseDetailContent');
+        console.log('📄 内容容器:', content);
+        
+        if (!content) {
+            console.error('❌ 找不到内容容器');
+            return;
+        }
+        
+        const assignments = await getDataByIndex('assignments', 'planId', planId);  // ✅ 改为 planId
+        console.log('📝 查询到的作业:', assignments);
+        console.log('📊 作业数量:', assignments.length);
+        
+        if (assignments.length === 0) {
+            console.log('⚠️ 没有找到作业，显示空状态');
+            content.innerHTML = `
+                <div class="empty-state">
+                    <p>✏️ 暂无课程作业</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const assignmentsHtml = [];
+        for (const assignment of assignments) {
+            console.log('📋 处理作业:', assignment);
+            
+            // 检查是否已提交
+            const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignment.id);
+            const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
+            
+            const isOverdue = new Date(assignment.deadline) < new Date();
+            const statusClass = mySubmission ? 'submitted' : (isOverdue ? 'overdue' : 'pending');
+            const statusText = mySubmission ? '✅ 已提交' : (isOverdue ? '⏰ 已截止' : '📝 待提交');
+            
+            assignmentsHtml.push(`
+                <div class="assignment-item">
+                    <div class="assignment-header">
+                        <h4>${assignment.title || assignment.name || '未命名作业'}</h4>
+                        <span class="assignment-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="assignment-body">
+                        <p class="assignment-desc">${assignment.description || '暂无描述'}</p>
+                        <div class="assignment-meta">
+                            <span>📅 截止时间：${assignment.deadline || '待定'}</span>
+                            <span>💯 总分：${assignment.maxScore || assignment.totalScore || 100}分</span>
+                            <span>⚖️ 权重：${assignment.weight || 0}%</span>
+                        </div>
+                        ${mySubmission ? `
+                            <div class="submission-info">
+                                <p>📤 提交时间：${mySubmission.submitTime}</p>
+                                ${mySubmission.score ? `<p>🎯 得分：${mySubmission.score}分</p>` : '<p>⏳ 待批改</p>'}
+                                ${mySubmission.feedback ? `<p>💬 教师评语：${mySubmission.feedback}</p>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="assignment-actions">
+                        ${!mySubmission && !isOverdue ? `
+                            <button class="btn-primary" onclick="submitAssignment('${assignment.id}')">
+                                提交作业
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `);
+        }
+        
         content.innerHTML = `
-            <div class="empty-state">
-                <p>✏️ 暂无课程作业</p>
+            <div class="assignments-list">
+                ${assignmentsHtml.join('')}
             </div>
         `;
-        return;
-    }
-    
-    const assignmentsHtml = [];
-    for (const assignment of assignments) {
-        // 检查是否已提交
-        const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignment.id);
-        const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
         
-        const isOverdue = new Date(assignment.deadline) < new Date();
-        const statusClass = mySubmission ? 'submitted' : (isOverdue ? 'overdue' : 'pending');
-        const statusText = mySubmission ? '✅ 已提交' : (isOverdue ? '⏰ 已截止' : '📝 待提交');
-        
-        assignmentsHtml.push(`
-            <div class="assignment-item">
-                <div class="assignment-header">
-                    <h4>${assignment.name}</h4>
-                    <span class="assignment-status ${statusClass}">${statusText}</span>
+        console.log('✅ 作业加载完成');
+    } catch (error) {
+        console.error('❌ 加载作业失败:', error);
+        const content = document.getElementById('courseDetailContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="error-state">
+                    <p>❌ 加载作业失败，请稍后重试</p>
                 </div>
-                <div class="assignment-body">
-                    <p class="assignment-desc">${assignment.description || '暂无描述'}</p>
-                    <div class="assignment-meta">
-                        <span>📅 截止时间：${assignment.deadline || '待定'}</span>
-                        <span>💯 总分：${assignment.totalScore || 100}分</span>
-                        <span>⚖️ 权重：${assignment.weight || 0}%</span>
-                    </div>
-                    ${mySubmission ? `
-                        <div class="submission-info">
-                            <p>📤 提交时间：${mySubmission.submitTime}</p>
-                            ${mySubmission.score ? `<p>🎯 得分：${mySubmission.score}分</p>` : '<p>⏳ 待批改</p>'}
-                            ${mySubmission.feedback ? `<p>💬 教师评语：${mySubmission.feedback}</p>` : ''}
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="assignment-actions">
-                    ${!mySubmission && !isOverdue ? `
-                        <button class="btn-primary" onclick="submitAssignment('${assignment.id}')">
-                            提交作业
-                        </button>
-                    ` : ''}
-                </div>
-            </div>
-        `);
+            `;
+        }
     }
-    
-    content.innerHTML = `
-        <div class="assignments-list">
-            ${assignmentsHtml.join('')}
-        </div>
-    `;
 }
 
 // ✅ 一键提交作业（未逾期才能提交）
