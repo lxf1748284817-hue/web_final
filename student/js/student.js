@@ -1154,13 +1154,11 @@ async function loadGradeDetail(planId) {
         document.getElementById('finalGrade').textContent = score.total || '-';
         document.getElementById('finalGPA').textContent = score.gpa || '-';
         
-        // 填充成绩明细
-        const details = await getDataByIndex('score_details', 'scoreId', score.id);
+        // 填充成绩明细（无明细表，直接显示默认构成）
         const tbody = document.getElementById('breakdownTableBody');
         
-        if (details.length === 0) {
-            // 如果没有明细，显示默认构成
-            tbody.innerHTML = `
+        // 如果没有明细，显示默认构成
+        tbody.innerHTML = `
                 <tr>
                     <td>平时成绩</td>
                     <td>30%</td>
@@ -1185,33 +1183,9 @@ async function loadGradeDetail(planId) {
                     <td>-</td>
                 </tr>
             `;
-        } else {
-            // 显示真实的成绩明细
-            tbody.innerHTML = details.map(d => `
-                <tr>
-                    <td>${d.itemName}</td>
-                    <td>${d.weight}%</td>
-                    <td><span class="grade-badge ${getGradeClass(d.score)}">${d.score || '-'}</span></td>
-                    <td><span class="status-badge ${d.status}">${d.status === 'completed' ? '已完成' : '待完成'}</span></td>
-                    <td>${d.submitTime || '-'}</td>
-                </tr>
-            `).join('');
-            
-            // 添加成绩统计行
-            const totalWeight = details.reduce((sum, d) => sum + (d.weight || 0), 0);
-            
-            tbody.innerHTML += `
-                <tr style="background: #f8f9fa; font-weight: 600;">
-                    <td>总计</td>
-                    <td>${totalWeight}%</td>
-                    <td><span class="grade-badge ${getGradeClass(score.total)}">${score.total || '-'}</span></td>
-                    <td colspan="2">加权平均</td>
-                </tr>
-            `;
-        }
         
         // 绘制成绩图表
-        drawScoreChart(details.length > 0 ? details : [
+        drawScoreChart([
             { itemName: '平时成绩', score: score.quiz || 0 },
             { itemName: '期中成绩', score: score.midterm || 0 },
             { itemName: '期末考试', score: score.final || 0 }
