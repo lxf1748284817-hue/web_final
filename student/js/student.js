@@ -594,9 +594,26 @@ async function debugViewEnrollments() {
 let currentCourseId = null;
 
 async function openCourseDetailModal(planId) {
+    console.log('🚀 打开课程详情模态框，planId:', planId);
+    
     currentCourseId = planId;  // ✅ 现在存的是 planId
     const plan = await getDataById('plans', planId);
+    console.log('📋 开课计划信息:', plan);
+    
+    if (!plan) {
+        console.error('❌ 找不到开课计划，planId:', planId);
+        alert('找不到课程信息');
+        return;
+    }
+    
     const course = await getDataById('courses', plan.courseId);
+    console.log('📚 课程信息:', course);
+    
+    if (!course) {
+        console.error('❌ 找不到课程信息，courseId:', plan.courseId);
+        alert('找不到课程信息');
+        return;
+    }
     
     document.getElementById('courseDetailTitle').textContent = course.name;
     document.getElementById('courseDetailModal').style.display = 'block';
@@ -647,50 +664,73 @@ async function switchDetailTab(tab) {
 
 // 加载课件资料
 async function loadCourseMaterials(planId) {
-    const content = document.getElementById('courseDetailContent');
-    const materials = await getDataByIndex('course_materials', 'planId', planId);  // ✅ 改为 planId
+    console.log('🔍 开始加载课件资料，planId:', planId);
     
-    if (materials.length === 0) {
-        content.innerHTML = `
-            <div class="empty-state">
-                <p>📚 暂无课件资料</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const materialsHtml = materials.map(material => {
-        let icon = '📄';
-        if (material.type === 'video') icon = '🎥';
-        if (material.type === 'image') icon = '🖼️';
-        if (material.type === 'audio') icon = '🎵';
+    try {
+        const content = document.getElementById('courseDetailContent');
+        console.log('📄 内容容器:', content);
         
-        return `
-            <div class="material-item">
-                <div class="material-info">
-                    <span class="material-icon">${icon}</span>
-                    <div class="material-details">
-                        <h4>${material.name}</h4>
-                        <span class="material-meta">${material.size || '-'} • 上传于 ${material.uploadDate || '-'}</span>
+        if (!content) {
+            console.error('❌ 找不到内容容器');
+            return;
+        }
+        
+        const materials = await getDataByIndex('course_materials', 'planId', planId);  // ✅ 改为 planId
+        console.log('📚 查询到的课件资料:', materials);
+        console.log('📊 课件资料数量:', materials.length);
+        
+        if (materials.length === 0) {
+            content.innerHTML = `
+                <div class="empty-state">
+                    <p>📚 暂无课件资料</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const materialsHtml = materials.map(material => {
+            let icon = '📄';
+            if (material.type === 'video') icon = '🎥';
+            if (material.type === 'image') icon = '🖼️';
+            if (material.type === 'audio') icon = '🎵';
+            
+            return `
+                <div class="material-item">
+                    <div class="material-info">
+                        <span class="material-icon">${icon}</span>
+                        <div class="material-details">
+                            <h4>${material.title || material.name || '未命名资料'}</h4>
+                            <span class="material-meta">${material.fileSize || material.size || '-'} • 上传于 ${material.uploadDate || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="material-actions">
+                        <button class="btn-view" onclick="viewMaterial('${material.id}', '${material.type}', '${material.fileUrl || material.url}', '${material.title || material.name}')">
+                            ${material.type === 'video' || material.type === 'image' ? '预览' : '查看'}
+                        </button>
+                        <button class="btn-download" onclick="downloadMaterial('${material.fileUrl || material.url}', '${material.title || material.name}')">
+                            下载
+                        </button>
                     </div>
                 </div>
-                <div class="material-actions">
-                    <button class="btn-view" onclick="viewMaterial('${material.id}', '${material.type}', '${material.url}', '${material.name}')">
-                        ${material.type === 'video' || material.type === 'image' ? '预览' : '查看'}
-                    </button>
-                    <button class="btn-download" onclick="downloadMaterial('${material.url}', '${material.name}')">
-                        下载
-                    </button>
-                </div>
+            `;
+        }).join('');
+        
+        content.innerHTML = `
+            <div class="materials-list">
+                ${materialsHtml}
             </div>
         `;
-    }).join('');
-    
-    content.innerHTML = `
-        <div class="materials-list">
-            ${materialsHtml}
-        </div>
-    `;
+    } catch (error) {
+        console.error('❌ 加载课件资料失败:', error);
+        const content = document.getElementById('courseDetailContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="error-state">
+                    <p>❌ 加载课件资料失败，请稍后重试</p>
+                </div>
+            `;
+        }
+    }
 }
 
 // 预览课件
@@ -824,7 +864,7 @@ async function submitAssignment(assignmentId) {
         
         // 创建提交记录
         const submission = {
-            id: IdGenerator.generic('sub'),
+            id: `sub_${assignmentId}_${currentStudent.id}`,
             assignmentId: assignmentId,
             studentId: currentStudent.id,
             content: '作业已提交',
