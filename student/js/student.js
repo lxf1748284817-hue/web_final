@@ -1032,13 +1032,12 @@ async function loadSemesterGrades() {
     const rows = [];
     
     for (const score of scores) {
-        // ✅ 通过 planId 获取课程信息（兼容 coursePlanId 和 planId）
-        const planId = score.planId || score.coursePlanId;
-        if (!planId) {
-            console.warn('⚠️ 警告 - planId/coursePlanId 缺失，跳过成绩:', score.id);
+        // ✅ 通过 planId 获取课程信息
+        if (!score.planId) {
+            console.warn('⚠️ 警告 - planId 缺失，跳过成绩:', score.id);
             continue;
         }
-        const plan = await getDataById('plans', planId);
+        const plan = await getDataById('plans', score.planId);
         
         if (!plan) {
             console.warn('⚠️ 警告 - plan不存在，跳过成绩:', score.id);
@@ -1095,11 +1094,10 @@ async function calculateGradeSummary() {
     let totalGradePoints = 0;
     
     for (const score of scores) {
-        // ✅ 通过 planId 获取课程信息（兼容 coursePlanId 和 planId）
-        const planId = score.planId || score.coursePlanId;
-        if (!planId) continue;
+        // ✅ 通过 planId 获取课程信息
+        if (!score.planId) continue;
         
-        const plan = await getDataById('plans', planId);
+        const plan = await getDataById('plans', score.planId);
         if (!plan) continue;
         
         const course = await getDataById('courses', plan.courseId);

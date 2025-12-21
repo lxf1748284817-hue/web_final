@@ -325,7 +325,7 @@ class DatabaseManager {
             stores.scores.add({ id: 'score_003', coursePlanId: 'plan_001', studentId: 'stu_003', quiz: 92, midterm: 88, final: 95, total: 92, status: 'unpublished' }),
             stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' }),
             // 为当前学生添加数据结构与算法课程成绩
-            stores.scores.add({ id: 'score_student_001_plan_001', coursePlanId: 'plan_001', studentId: 'student_001', quiz: 90, midterm: 85, final: 92, total: 89, status: 'published' })
+            stores.scores.add({ id: 'score_student_001_plan_001', planId: 'plan_001', studentId: 'student_001', quiz: 90, midterm: 85, final: 92, total: 89, status: 'published' })
         ]);
 
         // 6. 课程资料 - 为数据结构与算法课程添加资料
