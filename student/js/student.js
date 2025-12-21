@@ -742,7 +742,10 @@ function viewMaterial(materialId, type, url, name) {
     let contentHtml = '';
     if (type === 'video') {
         contentHtml = `
-            <video controls style="width: 100%; max-height: 70vh;">
+            <div id="video-loading" style="text-align: center; padding: 20px; color: #666;">视频加载中...</div>
+            <video controls style="width: 100%; max-height: 70vh;" preload="metadata" 
+                   onloadstart="document.getElementById('video-loading').style.display='none'" 
+                   onerror="document.getElementById('video-loading').textContent='视频加载失败，请检查网络或稍后重试'">
                 <source src="${url}" type="video/mp4">
                 您的浏览器不支持视频播放。
             </video>
