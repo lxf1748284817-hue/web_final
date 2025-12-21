@@ -873,12 +873,17 @@ async function loadCourseAssignments(planId) {
 
 // ✅ 一键提交作业（未逾期才能提交）
 async function submitAssignment(assignmentId) {
+    console.log('🚀 开始提交作业，assignmentId:', assignmentId);
+    
     try {
         // 获取作业信息
         const assignment = await getDataById('assignments', assignmentId);
+        console.log('📝 作业信息:', assignment);
         
         // 检查是否逾期
         const isOverdue = new Date(assignment.deadline) < new Date();
+        console.log('⏰ 是否逾期:', isOverdue);
+        
         if (isOverdue) {
             alert('❌ 作业已逾期，无法提交！');
             return;
@@ -886,7 +891,10 @@ async function submitAssignment(assignmentId) {
         
         // 检查是否已提交
         const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignmentId);
+        console.log('📋 现有提交记录:', submissions);
+        
         const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
+        console.log('👤 我的提交记录:', mySubmission);
         
         if (mySubmission) {
             alert('⚠️ 您已提交过该作业！');
@@ -906,7 +914,17 @@ async function submitAssignment(assignmentId) {
             feedback: null
         };
         
+        console.log('💾 要提交的数据:', submission);
+        
         await addData('assignment_submissions', submission);
+        console.log('✅ 作业提交成功！数据库写入完成');
+        
+        // 验证提交是否成功
+        const updatedSubmissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignmentId);
+        console.log('🔍 提交后验证 - 所有提交记录:', updatedSubmissions);
+        
+        const newSubmission = updatedSubmissions.find(s => s.studentId === currentStudent.id);
+        console.log('🔍 提交后验证 - 我的新提交记录:', newSubmission);
         
         alert('✅ 作业提交成功！');
         
