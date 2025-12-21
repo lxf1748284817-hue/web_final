@@ -113,6 +113,26 @@ h2 {
     background-color: #fff;
 }
 
+.btn-clear {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-clear:hover {
+    background: #e9ecef;
+    color: #333;
+    border-color: #ccc;
+}
+
 .btn-search {
     flex: 0 0 auto; /* 搜索按钮保持自身大小，不伸缩 */
     background: var(--primary-color);
@@ -170,6 +190,16 @@ h2 {
     font-size: 0.85rem;
     color: #666;
     margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.course-meta span {
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 0.8rem;
 }
 
 .course-intro {

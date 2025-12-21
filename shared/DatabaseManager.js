@@ -141,28 +141,103 @@ class DatabaseManager {
      * 初始化种子数据
      */
     async _seedInitialData() {
-        const tx = this.db.transaction(['users', 'courses'], 'readwrite');
+        // 检查是否需要admin模块的完整数据
+        const tx = this.db.transaction(['users', 'classes', 'courses', 'course_plans', 'scores'], 'readwrite');
         
-        // 检查并初始化用户数据
-        const userStore = tx.objectStore('users');
-        const userCount = await this._getStoreCount(userStore);
+        const stores = {
+            users: tx.objectStore('users'),
+            classes: tx.objectStore('classes'),
+            courses: tx.objectStore('courses'),
+            course_plans: tx.objectStore('course_plans'),
+            scores: tx.objectStore('scores')
+        };
         
-        if (userCount === 0) {
-            await this._seedUsers(userStore);
+        // 检查各个表的数据
+        const counts = await Promise.all(
+            Object.entries(stores).map(([name, store]) => this._getStoreCount(store))
+        );
+        
+        const totalData = counts.reduce((sum, count) => sum + count, 0);
+        
+        if (totalData === 0) {
+            console.log('🌱 生成admin模块最小测试数据...');
+            await this._seedMinimalAdminData(stores);
+        } else {
+            console.log('💾 数据已存在，跳过初始化');
         }
 
-        // 检查并初始化课程数据
-        const courseStore = tx.objectStore('courses');
-        const courseCount = await this._getStoreCount(courseStore);
-        
-        if (courseCount === 0) {
-            await this._seedCourses(courseStore);
-        }
-
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             tx.oncomplete = resolve;
-            tx.onerror = () => console.error('❌ 种子数据初始化失败');
+            tx.onerror = reject;
         });
+    }
+
+    /**
+     * admin模块最小测试数据
+     */
+    async _seedMinimalAdminData(stores) {
+        // 1. 班级 (2个)
+        await Promise.all([
+            stores.classes.add({ id: 'cls_001', name: '计算机1班', major: '计算机科学', enrollmentYear: '2023', studentCount: 3 }),
+            stores.classes.add({ id: 'cls_002', name: '软件工程1班', major: '软件工程', enrollmentYear: '2023', studentCount: 2 })
+        ]);
+
+        // 2. 用户 (5学生+2教师)
+        await Promise.all([
+            // 学生
+            stores.users.add({ id: 'stu_001', username: 'student1', name: '张三', role: 'student', classId: 'cls_001', phone: '13800138001' }),
+            stores.users.add({ id: 'stu_002', username: 'student2', name: '李四', role: 'student', classId: 'cls_001', phone: '13800138002' }),
+            stores.users.add({ id: 'stu_003', username: 'student3', name: '王五', role: 'student', classId: 'cls_001', phone: '13800138003' }),
+            stores.users.add({ id: 'stu_004', username: 'student4', name: '赵六', role: 'student', classId: 'cls_002', phone: '13800138004' }),
+            stores.users.add({ id: 'stu_005', username: 'student5', name: '钱七', role: 'student', classId: 'cls_002', phone: '13800138005' }),
+            // 教师
+            stores.users.add({ id: 'tea_001', username: 'teacher1', name: '王老师', role: 'teacher', phone: '13900139001' }),
+            stores.users.add({ id: 'tea_002', username: 'teacher2', name: '李老师', role: 'teacher', phone: '13900139002' })
+        ]);
+
+        // 3. 课程 (2门)
+        await Promise.all([
+            stores.courses.add({ 
+                id: 'crs_001', 
+                code: 'CS101', 
+                name: '计算机基础', 
+                credits: 3, 
+                hours: 48, 
+                description: '计算机基础课程',
+                teacher: '王老师',
+                department: '计算机系',
+                category: '必修课',
+                prerequisites: '无'
+            }),
+            stores.courses.add({ 
+                id: 'crs_002', 
+                code: 'CS102', 
+                name: '数据结构', 
+                credits: 4, 
+                hours: 64, 
+                description: '数据结构与算法',
+                teacher: '李老师',
+                department: '计算机系', 
+                category: '专业课',
+                prerequisites: '需掌握编程基础'
+            })
+        ]);
+
+        // 4. 授课计划 (2个)
+        await Promise.all([
+            stores.course_plans.add({ id: 'plan_001', courseId: 'crs_001', teacherId: 'tea_001', semester: '2024-2025-1', classroom: 'A101', timeSlots: '周一 1-2节' }),
+            stores.course_plans.add({ id: 'plan_002', courseId: 'crs_002', teacherId: 'tea_002', semester: '2024-2025-1', classroom: 'B202', timeSlots: '周三 3-4节' })
+        ]);
+
+        // 5. 成绩 (4条，覆盖不同状态)
+        await Promise.all([
+            stores.scores.add({ id: 'score_001', coursePlanId: 'plan_001', studentId: 'stu_001', quiz: 85, midterm: 80, final: 88, total: 85, status: 'published' }),
+            stores.scores.add({ id: 'score_002', coursePlanId: 'plan_001', studentId: 'stu_002', quiz: 75, midterm: 70, final: 72, total: 72, status: 'published' }),
+            stores.scores.add({ id: 'score_003', coursePlanId: 'plan_001', studentId: 'stu_003', quiz: 92, midterm: 88, final: 95, total: 92, status: 'unpublished' }),
+            stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' })
+        ]);
+
+        console.log('✅ admin模块最小测试数据生成完成');
     }
 
     /**
@@ -392,6 +467,21 @@ class DatabaseManager {
             throw new Error('数据库未初始化，请先调用 init()');
         }
         return this.db;
+    }
+
+    /**
+     * 创建事务 (兼容旧代码)
+     */
+    transaction(storeNames, mode = 'readonly') {
+        return this.db.transaction(storeNames, mode);
+    }
+
+    /**
+     * 获取对象存储 (兼容旧代码)
+     */
+    objectStore(storeName, mode = 'readonly') {
+        const tx = this.transaction(storeName, mode);
+        return tx.objectStore(storeName);
     }
 }
 

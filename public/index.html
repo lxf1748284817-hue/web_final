@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成绩管理教学平台 - 首页与课程浏览</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <header class="main-header">
+    <div class="container header-content">
+        <a href="../index.html" class="logo">
+            <i class="fas fa-university"></i> 成绩管理教学平台
+        </a>
+        <nav class="main-nav">
+            <ul id="nav-list">
+                <li><a href="login.html" class="btn-login"><i class="fas fa-sign-in-alt"></i> 登录系统</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+    <main>
+        
+        <section id="search-filter" class="section-padded">
+            <div class="container">
+                <h2>📚 课程搜索与筛选</h2>
+                <div class="search-form">
+                    
+                    <input type="text" id="course-search-input" placeholder="输入课程号或课程名进行搜索...">
+                    <button id="search-btn" class="btn btn-search"><i class="fas fa-search"></i> 搜索</button>
+                    
+                    <div class="filter-group">
+                        <select id="filter-department">
+                            <option value="">-- 开课院系 --</option>
+                            </select>
+                        <select id="filter-credit">
+                            <option value="">-- 学分 --</option>
+                            <option value="1.0">1.0 学分</option>
+                            <option value="2.0">2.0 学分</option>
+                            <option value="3.0">3.0 学分</option>
+                        </select>
+                        <button id="clear-filters" class="btn btn-clear" title="清空所有筛选">
+                            <i class="fas fa-times"></i> 清空
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="courses" class="section-padded">
+            <div class="container">
+                <h2>课程列表</h2>
+                
+                <div id="course-list" class="course-grid">
+                    <!-- 课程卡片将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2025 成绩管理教学平台. All Rights Reserved. | 符合深圳大学相关规范</p>
+            <p>技术支持：Web编程开发团队</p>
+        </div>
+    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script type="module">
+        import { dbManager } from '../shared/DatabaseManager.js';
+        import { authService } from '../shared/AuthService.js';
+        
+        // 初始化数据库并暴露给旧代码兼容
+        window.dbManager = dbManager;
+        
+        // 兼容旧代码的BaseDB接口
+        window.BaseDB = {
+            open: async () => {
+                await dbManager.init();
+                return dbManager.getDatabase();
+            }
+        };
+        
+        // 初始化数据库
+        dbManager.init().then(() => {
+            console.log('✅ 公共页面数据库初始化完成');
+        }).catch(error => {
+            console.error('❌ 数据库初始化失败:', error);
+        });
+    </script>
+    <script src="js/main.js"></script>
+    
+</body>
+</html>

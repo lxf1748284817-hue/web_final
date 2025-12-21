@@ -36,13 +36,22 @@ const CourseModule = {
             searchInput: document.getElementById('course-search-input'),
             searchBtn: document.getElementById('search-btn'),
             filterDept: document.getElementById('filter-department'),
-            filterCredit: document.getElementById('filter-credit')
+            filterCredit: document.getElementById('filter-credit'),
+            clearFilters: document.getElementById('clear-filters')
         };
     },
 
     // 2. 从 IndexedDB 加载课程
     async loadCourses() {
         try {
+        // 使用统一数据库管理器
+        if (typeof window.dbManager !== 'undefined') {
+            await window.dbManager.init();
+            const courses = await window.dbManager.getAll('courses');
+            console.log('📚 从数据库加载的课程:', courses);
+            return courses && courses.length > 0 ? courses : this.fallbackData;
+        }
+            
             // 兼容性获取数据库实例
             const db = typeof BaseDB !== 'undefined' ? await BaseDB.open() : await openDB();
             return new Promise((resolve) => {
@@ -68,14 +77,12 @@ const CourseModule = {
         const isLoggedIn = !!currentUser;
         const isStudent = isLoggedIn && currentUser.role === 'student';
 
-        // 动态逻辑判断
-        let btnText = "查看详情";
-        let btnClass = "btn-secondary";
+        // 动态逻辑判断 - 统一显示立即选修
+        let btnText = "立即选修";
+        let btnClass = "btn-primary";
         let btnAction = `alert('请先从右上角登录系统后再进行选课。')`;
 
         if (isStudent) {
-            btnText = "立即选修";
-            btnClass = "btn-primary"; // 登录后按钮变色
             btnAction = `location.href='student_side/course_selection.html'`;
         }
 
@@ -90,6 +97,7 @@ const CourseModule = {
                 
                 <p class="course-meta">
                     <span>授课教师：${course.teacher || '待定'}</span>
+                    <span>开课院系：${course.department || '待定'}</span>
                     <span>学分：<strong>${parseFloat(course.credits || 0).toFixed(1)}</strong></span>
                 </p>
                 
@@ -154,10 +162,18 @@ const CourseModule = {
             });
         };
 
+        const clearFilters = () => {
+            els.searchInput.value = '';
+            els.filterDept.value = '';
+            els.filterCredit.value = '';
+            triggerSearch();
+        };
+
         // 绑定事件
         els.searchBtn?.addEventListener('click', triggerSearch);
         els.filterDept?.addEventListener('change', triggerSearch);
         els.filterCredit?.addEventListener('change', triggerSearch);
+        els.clearFilters?.addEventListener('click', clearFilters);
         
         // 回车搜索支持
         els.searchInput?.addEventListener('keypress', (e) => {
