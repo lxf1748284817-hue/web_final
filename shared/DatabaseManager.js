@@ -318,12 +318,14 @@ class DatabaseManager {
             stores.plans.add({ id: 'plan_002', courseId: 'course_ma202', teacherId: 'tea_002', semester: '2024-1', classroom: '大礼堂', schedule: '周五 7-8节', capacity: 100, enrolled: 0 })
         ]);
 
-        // 5. 成绩 (4条，覆盖不同状态)
+        // 5. 成绩 (5条，覆盖不同状态)
         await Promise.all([
             stores.scores.add({ id: 'score_001', coursePlanId: 'plan_001', studentId: 'stu_001', quiz: 85, midterm: 80, final: 88, total: 85, status: 'published' }),
             stores.scores.add({ id: 'score_002', coursePlanId: 'plan_001', studentId: 'stu_002', quiz: 75, midterm: 70, final: 72, total: 72, status: 'published' }),
             stores.scores.add({ id: 'score_003', coursePlanId: 'plan_001', studentId: 'stu_003', quiz: 92, midterm: 88, final: 95, total: 92, status: 'unpublished' }),
-            stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' })
+            stores.scores.add({ id: 'score_004', coursePlanId: 'plan_002', studentId: 'stu_004', quiz: 65, midterm: 62, final: 68, total: 66, status: 'published' }),
+            // 为当前学生添加数据结构与算法课程成绩
+            stores.scores.add({ id: 'score_student_001_plan_001', coursePlanId: 'plan_001', studentId: 'student_001', quiz: 90, midterm: 85, final: 92, total: 89, status: 'published' })
         ]);
 
         // 6. 课程资料 - 为数据结构与算法课程添加资料
