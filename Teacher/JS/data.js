@@ -5,7 +5,7 @@
 
 const DB_CONFIG = {
     name: 'CurriculumDesignDB',
-    version: 11, // 统一版本号，以 admin 为准
+    version: 12, // 统一版本号，以系统为准
     stores: {
         users: { keyPath: 'id' },
         classes: { keyPath: 'id' },
