@@ -41,6 +41,7 @@
                             <option value="1.0">1.0 学分</option>
                             <option value="2.0">2.0 学分</option>
                             <option value="3.0">3.0 学分</option>
+                            <option value="4.0">4.0 学分</option>
                         </select>
                         <button id="clear-filters" class="btn btn-clear" title="清空所有筛选">
                             <i class="fas fa-times"></i> 清空
@@ -69,13 +70,9 @@
         </div>
     </footer>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script type="module">
-        import { dbManager } from '../shared/DatabaseManager.js';
-        import { authService } from '../shared/AuthService.js';
-        
-        // 初始化数据库并暴露给旧代码兼容
-        window.dbManager = dbManager;
-        
+    <script src="../shared/DatabaseManager.js"></script>
+    <script src="../shared/AuthService.js"></script>
+    <script>
         // 兼容旧代码的BaseDB接口
         window.BaseDB = {
             open: async () => {

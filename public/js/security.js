@@ -148,13 +148,13 @@ const AuthModule = {
      */
     redirectByRole(role) {
         const routes = {
-            'student': '../student_side/dashboard.html',
-            'teacher': '../teacher_side/course_management.html',
-            'admin_edu': '../edu_admin/dashboard.html', // 假设教学管理员路径
-            'admin_sys': '../sys_admin/dashboard.html'
+            'student': '../student/index.html',
+            'teacher': '../Teacher/HTML/dashboard.html',
+            'admin_edu': '../admin/admin.html',
+            'admin_sys': '../TMS_System_Admin/admin.html'
         };
         alert(`登录成功！正在进入系统...`);
-        window.location.href = routes[role] || 'main.html';
+        window.location.href = routes[role] || '../index.html';
     },
 
     init() {

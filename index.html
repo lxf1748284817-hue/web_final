@@ -151,42 +151,52 @@
         </div>
     </div>
 
-    <script type="module">
-        // 导入核心服务
-        import { dbManager } from './core/DatabaseManager.js';
-        import { authService } from './core/AuthService.js';
-
+    <script src="shared/DatabaseManager.js"></script>
+    <script src="shared/AuthService.js"></script>
+    <script>
         // 初始化系统
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // 暴露到全局
+                if (typeof dbManager !== 'undefined') {
+                    window.dbManager = dbManager;
+                }
+                if (typeof authService !== 'undefined') {
+                    window.authService = authService;
+                }
+
                 // 初始化数据库
-                await dbManager.init();
-                console.log('✅ 数据库初始化成功');
+                if (window.dbManager) {
+                    await window.dbManager.init();
+                    console.log('✅ 数据库初始化成功');
+                }
 
                 // 初始化认证服务
-                await authService.init();
-                console.log('✅ 认证服务初始化成功');
+                if (window.authService) {
+                    await window.authService.init();
+                    console.log('✅ 认证服务初始化成功');
 
-                // 检查是否有自动登录会话
-                const session = authService.checkSession();
-                if (session) {
-                    console.log('✅ 用户会话有效:', session.name);
-                    
-                    // 根据角色自动跳转
-                    setTimeout(() => {
-                        const roleRoutes = {
-                            'student': './student/index.html',
-                            'teacher': './Teacher/HTML/dashboard.html',
-                            'admin_edu': './TMS_System_Admin/index.html',
-                            'sysadmin': './TMS_System_Admin/index.html'
-                        };
+                    // 检查是否有自动登录会话
+                    const session = window.authService.checkSession();
+                    if (session) {
+                        console.log('✅ 用户会话有效:', session.name);
                         
-                        const targetRoute = roleRoutes[session.role];
-                        if (targetRoute) {
-                            console.log(`🔄 自动跳转到${authService.getRoleDisplayName(session.role)}端`);
-                            window.location.href = targetRoute;
-                        }
-                    }, 2000);
+                        // 根据角色自动跳转
+                        setTimeout(() => {
+                            const roleRoutes = {
+                                'student': './student/index.html',
+                                'teacher': './Teacher/HTML/dashboard.html',
+                                'admin_edu': './TMS_System_Admin/index.html',
+                                'sysadmin': './TMS_System_Admin/index.html'
+                            };
+                            
+                            const targetRoute = roleRoutes[session.role];
+                            if (targetRoute) {
+                                console.log(`🔄 自动跳转到${window.authService.getRoleDisplayName(session.role)}端`);
+                                window.location.href = targetRoute;
+                            }
+                        }, 2000);
+                    }
                 }
 
             } catch (error) {

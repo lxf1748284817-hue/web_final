@@ -3,7 +3,33 @@
  * 兼容现有代码，提供统一的数据访问接口
  */
 
-import { DATABASE_CONFIG, ID_GENERATOR } from '../config/database.js';
+// 内联数据库配置
+const DATABASE_CONFIG = {
+    name: 'CurriculumDesignDB',
+    version: 12,
+    stores: [
+        'users', 'classes', 'courses', 'plans', 'scores',
+        'enrollments', 'course_materials', 'assignments', 'submissions',
+        'exams', 'exam_results', 'audit_logs', 'system_settings', 'data_backups'
+    ]
+};
+
+// 内联ID生成器
+const ID_GENERATOR = {
+    user: (role, sequence) => `${role}_${String(sequence).padStart(3, '0')}`,
+    course: (code) => `crs_${code}`,
+    class: (grade, sequence) => `cls_${grade}_${String(sequence).padStart(2, '0')}`,
+    plan: (semester, courseCode) => `plan_${semester.replace('-', '_')}_${courseCode}`,
+    enrollment: (studentId, planId) => `enroll_${studentId}_${planId}`,
+    material: (courseId, type) => `mat_${courseId}_${type}_${Date.now()}`,
+    assignment: (courseId, sequence) => `assign_${courseId}_${String(sequence).padStart(3, '0')}`,
+    submission: (assignmentId, studentId) => `sub_${assignmentId}_${studentId}`,
+    exam: (courseId, sequence) => `exam_${courseId}_${String(sequence).padStart(3, '0')}`,
+    examResult: (examId, studentId) => `result_${examId}_${studentId}`,
+    score: (studentId, planId) => `score_${studentId}_${planId}`,
+    auditLog: (userId, action) => `log_${userId}_${action}_${Date.now()}`,
+    backup: () => `backup_${Date.now()}`
+};
 
 class DatabaseManager {
     constructor() {
@@ -142,13 +168,13 @@ class DatabaseManager {
      */
     async _seedInitialData() {
         // 检查是否需要admin模块的完整数据
-        const tx = this.db.transaction(['users', 'classes', 'courses', 'course_plans', 'scores'], 'readwrite');
+        const tx = this.db.transaction(['users', 'classes', 'courses', 'plans', 'scores'], 'readwrite');
         
         const stores = {
             users: tx.objectStore('users'),
             classes: tx.objectStore('classes'),
             courses: tx.objectStore('courses'),
-            course_plans: tx.objectStore('course_plans'),
+            plans: tx.objectStore('plans'),
             scores: tx.objectStore('scores')
         };
         
@@ -160,8 +186,10 @@ class DatabaseManager {
         const totalData = counts.reduce((sum, count) => sum + count, 0);
         
         if (totalData === 0) {
-            console.log('🌱 生成admin模块最小测试数据...');
+            console.log('🌱 生成初始测试数据...');
             await this._seedMinimalAdminData(stores);
+            // 用正确的用户数据覆盖（包含密码）
+            await this._seedUsers(stores.users);
         } else {
             console.log('💾 数据已存在，跳过初始化');
         }
@@ -182,7 +210,7 @@ class DatabaseManager {
             stores.classes.add({ id: 'cls_002', name: '软件工程1班', major: '软件工程', enrollmentYear: '2023', studentCount: 2 })
         ]);
 
-        // 2. 用户 (5学生+2教师)
+        // 2. 用户 (简单数据，会被 _seedUsers 覆盖)
         await Promise.all([
             // 学生
             stores.users.add({ id: 'stu_001', username: 'student1', name: '张三', role: 'student', classId: 'cls_001', phone: '13800138001' }),
@@ -225,8 +253,8 @@ class DatabaseManager {
 
         // 4. 授课计划 (2个)
         await Promise.all([
-            stores.course_plans.add({ id: 'plan_001', courseId: 'crs_001', teacherId: 'tea_001', semester: '2024-2025-1', classroom: 'A101', timeSlots: '周一 1-2节' }),
-            stores.course_plans.add({ id: 'plan_002', courseId: 'crs_002', teacherId: 'tea_002', semester: '2024-2025-1', classroom: 'B202', timeSlots: '周三 3-4节' })
+            stores.plans.add({ id: 'plan_001', courseId: 'crs_001', teacherId: 'tea_001', semester: '2024-2025-1', classroom: 'A101', timeSlots: '周一 1-2节' }),
+            stores.plans.add({ id: 'plan_002', courseId: 'crs_002', teacherId: 'tea_002', semester: '2024-2025-1', classroom: 'B202', timeSlots: '周三 3-4节' })
         ]);
 
         // 5. 成绩 (4条，覆盖不同状态)
@@ -485,8 +513,9 @@ class DatabaseManager {
     }
 }
 
-// 创建单例实例
-export const dbManager = new DatabaseManager();
+// 创建单例实例并暴露到全局
+const dbManager = new DatabaseManager();
+window.dbManager = dbManager;
 
 // 向后兼容 - 保持现有的全局变量
 window.BaseDB = {
@@ -494,5 +523,3 @@ window.BaseDB = {
     open: () => dbManager.init(),
     seed: () => dbManager._seedInitialData()
 };
-
-export default dbManager;

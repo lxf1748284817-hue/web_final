@@ -3,8 +3,29 @@
  * 兼容现有代码，提供统一的登录和权限管理
  */
 
-import { dbManager } from './DatabaseManager.js';
-import { USER_ROLES, ROLE_DISPLAY_NAMES, ROUTES } from '../config/database.js';
+// 内联角色配置
+const USER_ROLES = {
+    STUDENT: 'student',
+    TEACHER: 'teacher', 
+    ADMIN_EDU: 'admin_edu',
+    ADMIN_SYS: 'sysadmin',
+    GUEST: 'guest'
+};
+
+const ROLE_DISPLAY_NAMES = {
+    [USER_ROLES.STUDENT]: '学生',
+    [USER_ROLES.TEACHER]: '教师',
+    [USER_ROLES.ADMIN_EDU]: '教学管理员',
+    [USER_ROLES.ADMIN_SYS]: '系统管理员',
+    [USER_ROLES.GUEST]: '游客'
+};
+
+const ROUTES = {
+    STUDENT: './student/index.html',
+    TEACHER: './Teacher/HTML/dashboard.html',
+    ADMIN_EDU: './admin/admin.html',
+    ADMIN_SYS: './TMS_System_Admin/admin.html'
+};
 
 class AuthService {
     constructor() {
@@ -100,7 +121,7 @@ class AuthService {
      */
     async _findUser(username) {
         try {
-            const db = dbManager.getDatabase();
+            const db = window.dbManager.getDatabase();
             const tx = db.transaction(['users'], 'readonly');
             const store = tx.objectStore('users');
             const index = store.index('username');
@@ -190,6 +211,13 @@ class AuthService {
 
             const session = JSON.parse(sessionData);
             
+            // 验证会话数据完整性
+            if (!session || !session.id || !session.username || !session.role) {
+                console.warn('⚠️ 会话数据不完整，清除会话');
+                this.logout();
+                return null;
+            }
+            
             // 检查会话是否过期
             if (new Date() > new Date(session.expiresAt)) {
                 this.logout();
@@ -198,7 +226,13 @@ class AuthService {
 
             // 更新当前用户
             if (!this.currentUser || this.currentUser.id !== session.id) {
-                this._loadCurrentUser(session.id);
+                if (session.id) {
+                    this._loadCurrentUser(session.id);
+                } else {
+                    console.warn('⚠️ 会话数据缺少用户ID，清除会话');
+                    this.logout();
+                    return null;
+                }
             }
 
             return session;
@@ -213,7 +247,7 @@ class AuthService {
      */
     async _loadCurrentUser(userId) {
         try {
-            const user = await dbManager.get('users', userId);
+            const user = await window.dbManager.get('users', userId);
             this.currentUser = user;
         } catch (error) {
             console.error('❌ 加载用户信息失败:', error);
@@ -281,7 +315,7 @@ class AuthService {
             user.isFirstLogin = false;
             user.updatedAt = new Date().toISOString();
 
-            await dbManager.update('users', user);
+            await window.dbManager.update('users', user);
             this._logActivity(user.id, 'password_reset', 'reset_password');
 
             return { success: true, message: '密码重置成功' };
@@ -343,7 +377,7 @@ class AuthService {
                 timestamp: new Date().toISOString()
             };
 
-            dbManager.add('audit_logs', logEntry);
+            window.dbManager.add('audit_logs', logEntry);
         } catch (error) {
             console.error('❌ 记录活动日志失败:', error);
         }
@@ -374,8 +408,9 @@ class AuthService {
     }
 }
 
-// 创建单例实例
-export const authService = new AuthService();
+// 创建单例实例并暴露到全局
+const authService = new AuthService();
+window.authService = authService;
 
 // 向后兼容 - 保持现有的全局变量
 window.AuthModule = {
@@ -388,5 +423,3 @@ window.AuthModule = {
         }
     }
 };
-
-export default authService;
