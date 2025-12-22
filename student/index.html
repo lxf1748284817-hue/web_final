@@ -295,7 +295,15 @@
     <script>
         // 兼容现有代码 - 添加旧的数据库接口
         window.getDataById = async function(storeName, id) {
-            return await window.dbManager.get(storeName, id);
+            // 尝试两种类型：数字和字符串
+            let result = await window.dbManager.get(storeName, id);
+            if (!result && !isNaN(id)) {
+                result = await window.dbManager.get(storeName, parseInt(id));
+            }
+            if (!result && typeof id === 'number') {
+                result = await window.dbManager.get(storeName, id.toString());
+            }
+            return result;
         };
         
         window.getDataByIndex = async function(storeName, indexName, value) {
@@ -337,11 +345,18 @@
                 await loadScript('js/api.js');
                 await loadScript('js/student.js');
                 
+                // 等待 student.js 加载完成
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 // 手动初始化 student.js（因为它的 load 事件已经错过了）
                 if (typeof updateUserInfo === 'function') {
                     updateUserInfo();
                     setupNavigation(); 
                     loadPage('courses');
+                } else {
+                    console.error('❌ student.js 未正确加载');
+                    // 如果 student.js 未加载，重新加载页面
+                    window.location.reload();
                 }
 
             } catch (error) {

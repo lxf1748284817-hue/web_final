@@ -63,10 +63,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     return true;
                 },
-                getHomeworkAssignments: () => [],
+                getHomeworkAssignments: async () => {
+                    try {
+                        console.log('📚 获取作业列表...');
+                        const assignments = await window.dbManager.getAll('assignments');
+                        console.log('📋 作业列表:', assignments);
+                        return assignments;
+                    } catch (error) {
+                        console.error('❌ 获取作业列表失败:', error);
+                        return [];
+                    }
+                },
                 getExamAssignments: () => [],
                 getSubmissions: () => [],
-                saveHomeworkAssignment: () => true,
+                saveHomeworkAssignment: async (assignment) => {
+                    try {
+                        console.log('💾 保存作业到数据库:', assignment);
+                        
+                        // 生成唯一ID（如果不存在）
+                        if (!assignment.id) {
+                            assignment.id = `assign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                        }
+                        
+                        // 确保有创建时间
+                        if (!assignment.createdAt) {
+                            assignment.createdAt = new Date().toISOString();
+                        }
+                        
+                        // 保存到数据库
+                        await window.dbManager.add('assignments', assignment);
+                        
+                        // 验证保存成功
+                        const savedAssignments = await window.dbManager.getAll('assignments');
+                        console.log('✅ 作业保存成功，当前数据库作业总数:', savedAssignments.length);
+                        
+                        return true;
+                    } catch (error) {
+                        console.error('❌ 保存作业失败:', error);
+                        return false;
+                    }
+                },
                 saveExamAssignment: () => true,
                 saveSubmission: () => true,
                 deleteHomeworkAssignment: () => true,

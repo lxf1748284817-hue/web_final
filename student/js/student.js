@@ -439,8 +439,11 @@ async function loadMyCourses() {
 // ✅ 根据作业完成情况计算课程学习进度
 async function calculateCourseProgress(planId) {
     try {
-        // 获取该课程的所有作业
-        const assignments = await getDataByIndex('assignments', 'planId', planId);
+        // 获取该课程的所有作业（兼容courseId和planId）
+        const allAssignments = await getAllData('assignments');
+        const assignments = allAssignments.filter(a => 
+            a.planId === planId || a.courseId === planId
+        );
         
         if (assignments.length === 0) {
             return 0; // 没有作业，进度为0
@@ -813,7 +816,26 @@ async function loadCourseAssignments(planId) {
             return;
         }
         
-        const assignments = await getDataByIndex('assignments', 'planId', planId);  // ✅ 改为 planId
+        // 获取当前课程的所有作业（兼容courseId和planId）
+        console.log('🔍 开始查询作业，planId:', planId);
+        const allAssignments = await getAllData('assignments');
+        console.log('📊 数据库中的所有作业:', allAssignments);
+        
+        // 获取当前开课计划信息，用于匹配课程ID
+        const plan = await getDataById('plans', planId);
+        console.log('📋 当前开课计划信息:', plan);
+        
+        const assignments = allAssignments.filter(a => {
+            // 如果作业有planId，直接匹配planId
+            if (a.planId === planId) return true;
+            
+            // 如果作业有courseId，需要匹配当前开课计划的courseId
+            if (a.courseId && plan && a.courseId === plan.courseId) return true;
+            
+            return false;
+        });
+        
+        console.log('📋 过滤后的作业:', assignments);
         console.log('📝 查询到的作业:', assignments);
         console.log('📊 作业数量:', assignments.length);
         
@@ -900,13 +922,42 @@ async function submitAssignment(assignmentId) {
         const assignment = await getDataById('assignments', assignmentId);
         console.log('📝 作业信息:', assignment);
         
-        // 检查是否逾期
-        const isOverdue = new Date(assignment.deadline) < new Date();
-        console.log('⏰ 是否逾期:', isOverdue);
-        
-        if (isOverdue) {
-            alert('❌ 作业已逾期，无法提交！');
+        // 检查作业是否存在
+        if (!assignment) {
+            console.error('❌ 作业不存在，assignmentId:', assignmentId);
+            alert('❌ 作业不存在，无法提交！');
             return;
+        }
+        
+        // 检查是否逾期（如果作业没有设置截止时间，默认可以提交）
+        let isOverdue = false;
+        if (assignment.deadline) {
+            console.log('📅 作业截止时间:', assignment.deadline);
+            
+            // 修复deadline格式，确保是完整的ISO格式
+            let deadlineStr = assignment.deadline;
+            if (!deadlineStr.includes(':')) {
+                deadlineStr += ':00'; // 添加秒
+            }
+            if (!deadlineStr.endsWith('Z') && deadlineStr.indexOf('+') === -1) {
+                deadlineStr += 'Z'; // 添加时区
+            }
+            
+            const deadlineDate = new Date(deadlineStr);
+            const currentDate = new Date();
+            
+            console.log('📅 解析后的截止时间:', deadlineDate);
+            console.log('⏰ 当前时间:', currentDate);
+            
+            isOverdue = deadlineDate < currentDate;
+            console.log('⏰ 是否逾期:', isOverdue);
+            
+            if (isOverdue) {
+                alert('❌ 作业已逾期，无法提交！');
+                return;
+            }
+        } else {
+            console.log('⚠️ 作业未设置截止时间，允许提交');
         }
         
         // 检查是否已提交

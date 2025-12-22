@@ -98,36 +98,50 @@ function initCourseSelects() {
 
 // 创建作业
 async function createHomework() {
-    const title = document.getElementById('hwTitle').value;
-    const courseId = document.getElementById('hwCourse').value;
-    const description = document.getElementById('hwDescription').value;
-    const deadline = document.getElementById('hwDeadline').value;
-    
-    const courseName = courses.find(c => c.id == courseId)?.name || '';
-    
-    const homework = {
-        id: Date.now(),
-        title: title,
-        courseId: courseId,
-        courseName: courseName,
-        description: description,
-        deadline: deadline,
-        createTime: new Date().toLocaleString(),
-        submissions: 0,
-        graded: 0
-    };
-    
-    homeworkAssignments.push(homework);
-    
-    // 保存到IndexedDB
-    await window.gradesManager.saveHomeworkAssignment(homework);
-    
-    // 重置表单
-    document.getElementById('homeworkForm').reset();
-    renderHomeworkList();
-    
-    // 模拟添加学生提交记录（实际应由学生端提交）
-    addMockSubmission(homework.id, 'homework');
+    try {
+        console.log('📝 开始创建作业...');
+        
+        const title = document.getElementById('hwTitle').value;
+        const courseId = document.getElementById('hwCourse').value;
+        const description = document.getElementById('hwDescription').value;
+        const deadline = document.getElementById('hwDeadline').value;
+        
+        console.log('📋 收集到的作业数据:', { title, courseId, description, deadline });
+        
+        const courseName = courses.find(c => c.id == courseId)?.name || '';
+        
+        const homework = {
+            id: Date.now(),
+            title: title,
+            courseId: courseId,
+            courseName: courseName,
+            description: description,
+            deadline: deadline,
+            createTime: new Date().toLocaleString(),
+            submissions: 0,
+            graded: 0
+        };
+        
+        console.log('💾 准备保存的作业数据:', homework);
+        
+        homeworkAssignments.push(homework);
+        
+        // 保存到IndexedDB
+        console.log('🔄 调用数据库保存作业...');
+        await window.gradesManager.saveHomeworkAssignment(homework);
+        console.log('✅ 作业保存完成');
+        
+        // 重置表单
+        document.getElementById('homeworkForm').reset();
+        renderHomeworkList();
+        
+        // 模拟添加学生提交记录（实际应由学生端提交）
+        addMockSubmission(homework.id, 'homework');
+        
+        console.log('🎉 作业创建流程完成');
+    } catch (error) {
+        console.error('❌ 创建作业失败:', error);
+    }
 }
 
 // 创建考试
