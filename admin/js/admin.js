@@ -240,12 +240,17 @@ function renderClasses(data = null) {
 }
 
 function openClassModal(id = null) {
+    // 确保Modal已初始化
+    if (!classModal) {
+        classModal = new bootstrap.Modal(document.getElementById('classModal'));
+    }
+    
     const form = document.getElementById('classForm');
     form.reset();
     document.getElementById('classId').value = '';
     
     if (id) {
-        const cls = currentClasses.find(c => c.id === id);
+        const cls = (window.currentClasses || currentClasses || []).find(c => c.id === id);
         if (cls) {
             document.getElementById('classId').value = cls.id;
             form.elements['name'].value = cls.name;
