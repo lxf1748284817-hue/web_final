@@ -774,7 +774,8 @@ function renderPlans(data = null) {
     const tbody = document.querySelector('#plan-table tbody');
     if (!tbody) return;
 
-    const plans = data || currentPlans || [];
+    // 优先使用传入的数据，然后是window.currentPlans（全局变量），最后是currentPlans（局部变量）
+    const plans = data || window.currentPlans || currentPlans || [];
 
     // 1. 获取过滤条件
     const searchInput = document.getElementById('planSearchInput');
@@ -786,11 +787,27 @@ function renderPlans(data = null) {
     planState.filters.teacherId = teacherSelect ? teacherSelect.value : '';
 
     // 2. 过滤数据
+    console.log('🔍 renderPlans 详细调试:');
+    console.log('传入的 plans 参数:', data);
+    console.log('window.currentPlans:', window.currentPlans);
+    console.log('使用的 plans 数据:', plans);
+    console.log('plans 长度:', plans.length);
+    
+    if (plans.length > 0) {
+        console.log('第一条计划数据:', plans[0]);
+        console.log('getCourseName 测试结果:', getCourseName(plans[0].courseId));
+        console.log('getUserName 测试结果:', getUserName(plans[0].teacherId));
+    }
+
     let filtered = plans.filter(p => {
+        console.log('🔍 筛选单个计划:', p);
+        
         const courseName = getCourseName(p.courseId).toLowerCase();
         const teacherName = getUserName(p.teacherId).toLowerCase();
         const classroom = p.classroom.toLowerCase();
         const search = planState.filters.search;
+
+        console.log('课程名:', courseName, '教师名:', teacherName, '教室:', classroom, '学期:', p.semester);
 
         const matchSearch = !search || 
             courseName.includes(search) || 
@@ -800,8 +817,15 @@ function renderPlans(data = null) {
         const matchSemester = !planState.filters.semester || p.semester === planState.filters.semester;
         const matchTeacher = !planState.filters.teacherId || p.teacherId === planState.filters.teacherId;
 
+        console.log('匹配结果 - 搜索:', matchSearch, '学期:', matchSemester, '教师:', matchTeacher);
+
         return matchSearch && matchSemester && matchTeacher;
     });
+    
+    console.log('🔍 筛选结果 - filtered 长度:', filtered.length);
+    if (filtered.length > 0) {
+        console.log('第一条筛选结果:', filtered[0]);
+    }
 
     // 3. 排序 (复用全局 sortState)
     if (sortState.tableId === 'plan-table' && sortState.field) {
@@ -854,13 +878,25 @@ function renderPlans(data = null) {
     `).join('');
 
     if (filtered.length === 0) {
+        let message = '';
+        
         if (planState.filters.search) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">
-                <i class="bi bi-search me-2"></i>没有找到与 "<strong>${planState.filters.search}</strong>" 相关的开课记录
-            </td></tr>`;
+            message = `没有找到与 "<strong>${planState.filters.search}</strong>" 相关的开课记录`;
+        } else if (planState.filters.semester) {
+            const semesterName = document.getElementById('planFilterSemester')?.options[document.getElementById('planFilterSemester')?.selectedIndex]?.text || planState.filters.semester;
+            message = `没有找到 <strong>${semesterName}</strong> 学期的开课记录`;
+        } else if (planState.filters.teacherId) {
+            const teacherName = getUserName(planState.filters.teacherId);
+            message = `没有找到 <strong>${teacherName}</strong> 教师的开课记录`;
+        } else if (plans.length === 0) {
+            message = '暂无开课记录';
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">暂无数据</td></tr>';
+            message = '没有符合条件的开课记录';
         }
+        
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">
+            <i class="bi bi-search me-2"></i>${message}
+            </td></tr>`;
     }
 
     // 7. 渲染分页控件
