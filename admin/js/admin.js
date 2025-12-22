@@ -12,6 +12,11 @@ let currentScores = [];
 // 默认头像
 const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktcGVyc29uLWZpbGwiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTMgMTRzLTEgMC0xLTEgMS00IDYtNCA2IDQgNiAxICAxIDF6Ii8+PHBhdGggZD0iTTggOGEzIDMgMCAxIDAgMC02IDMgMyAwIDAgMCAwIDZ6bTggNGMwLS45OTQtLjQxNy0xLjkyNy0xLjE1NS0yLjYwNUEyLjY4IDIuNjggMCAwIDAgMTIgMTJhMi42OCAyLjY4IDAgMCAwLTIuODQ1LS42MDVDNy40MTggMTIuMDczIDcgMTIuMDA2IDcgMTNjMCAwIC0xIDAtMSAxaDh6Ii8+PC9zdmc+';
 
+// ID生成器
+function generateId(prefix) {
+    return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
 // 排序状态
 let sortState = {
     tableId: null,
@@ -175,7 +180,7 @@ function logout() {
  */
 async function loadAllData() {
     try {
-        console.log('🔍 开始加载所有数据...');
+        console.log('🔍 loadAllData 开始加载所有数据...');
         
         currentClasses = await window.dbManager.getAll('classes') || [];
         currentCourses = await window.dbManager.getAll('courses') || [];
@@ -183,16 +188,13 @@ async function loadAllData() {
         currentUsers = await window.dbManager.getAll('users') || [];
         currentScores = await window.dbManager.getAll('scores') || [];
 
-        console.log('🔍 数据加载情况:');
-        console.log('班级数量:', currentClasses.length);
+        console.log('🔍 数据加载完成:');
+        console.log('班级数量:', currentClasses.length, '班级列表:', currentClasses);
         console.log('课程数量:', currentCourses.length);
         console.log('计划数量:', currentPlans.length);
         console.log('用户数量:', currentUsers.length);
         console.log('学生数量:', currentUsers.filter(u => u.role === 'student').length);
         console.log('教师数量:', currentUsers.filter(u => u.role === 'teacher').length);
-        
-        // 详细显示开课计划数据
-        console.log('🔍 开课计划详情:', currentPlans);
 
         renderClasses();
         renderCourses();
@@ -204,8 +206,10 @@ async function loadAllData() {
         
         // 确保筛选选项已正确更新
         updatePlanFilterOptions();
+        
+        console.log('✅ loadAllData 完成');
     } catch (e) {
-        console.error("Failed to load data from IndexedDB", e);
+        console.error("❌ Failed to load data from IndexedDB", e);
     }
 }
 
@@ -273,17 +277,17 @@ function openClassModal(id = null) {
     }
     
     const form = document.getElementById('classForm');
-    form.reset();
-    document.getElementById('classId').value = '';
     
     if (id) {
-        const cls = (window.currentClasses || currentClasses || []).find(c => c.id === id);
+        const cls = (window.currentClasses || []).find(c => c.id === id);
         if (cls) {
             document.getElementById('classId').value = cls.id;
             form.elements['name'].value = cls.name;
             document.getElementById('classModalLabel').textContent = '编辑班级';
         }
     } else {
+        form.reset();
+        document.getElementById('classId').value = '';
         document.getElementById('classModalLabel').textContent = '新增班级';
     }
     classModal.show();
@@ -294,22 +298,70 @@ async function saveClass() {
     const id = document.getElementById('classId').value;
     const name = form.elements['name'].value;
 
+    console.log('🔍 saveClass 调用 - id:', id, 'name:', name);
+
     if (!name) return alert('请输入班级名称');
+
+    // 检查班级名称是否重复 - 直接查数据库
+    try {
+        const allClasses = await window.dbManager.getAll('classes') || [];
+        const existingClass = allClasses.find(c => c.name.trim() === name.trim());
+        
+        if (existingClass && existingClass.id !== id) {
+            console.log('❌ 班级名称重复:', name, 'existingId:', existingClass.id, 'currentId:', id);
+            return alert('班级名称已存在，请使用其他名称');
+        }
+    } catch (error) {
+        console.error('❌ 检查班级名称重复失败:', error);
+        return alert('检查班级名称失败，请重试');
+    }
 
     const cls = {
         id: id || generateId('cls_'),
         name: name
     };
 
-    await window.dbManager.add('classes', cls);
-    classModal.hide();
-    loadAllData();
+    console.log('🔍 saveClass - cls对象:', cls);
+
+    try {
+        if (id) {
+            // 编辑模式：更新现有班级
+            console.log('🔍 saveClass - 执行更新操作');
+            await window.dbManager.update('classes', cls);
+        } else {
+            // 新增模式：添加新班级
+            console.log('🔍 saveClass - 执行新增操作');
+            await window.dbManager.add('classes', cls);
+        }
+        console.log('✅ 保存班级成功');
+        classModal.hide();
+        loadAllData();
+    } catch (error) {
+        console.error('❌ 保存班级失败:', error);
+        alert('保存失败，请查看控制台');
+    }
 }
 
 async function deleteClass(id) {
+    console.log('🗑️ deleteClass 调用，id:', id);
     if (confirm('确定删除该班级吗？')) {
-        await window.dbManager.delete('classes', id);
-        loadAllData();
+        try {
+            // 检查数据库中是否存在该班级
+            const classToDelete = await window.dbManager.get('classes', id);
+            if (!classToDelete) {
+                console.log('❌ 班级不存在，id:', id);
+                alert('班级不存在或已被删除');
+                loadAllData();
+                return;
+            }
+            
+            await window.dbManager.delete('classes', id);
+            console.log('✅ 数据库删除成功，id:', id);
+            loadAllData();
+        } catch (error) {
+            console.error('❌ 删除班级失败:', error);
+            alert('删除失败，请查看控制台');
+        }
     }
 }
 
@@ -772,23 +824,69 @@ async function saveCourse() {
     const form = document.getElementById('courseForm');
     const id = document.getElementById('courseId').value;
     
+    const code = form.elements['code'].value;
+    const name = form.elements['name'].value;
+
+    if (!code || !name) return alert('请输入课程代码和名称');
+
+    // 检查课程代码是否重复 - 直接查数据库
+    try {
+        const allCourses = await window.dbManager.getAll('courses') || [];
+        const existingCourse = allCourses.find(c => c.code.trim() === code.trim());
+        
+        if (existingCourse && existingCourse.id !== id) {
+            console.log('❌ 课程代码重复:', code, 'existingId:', existingCourse.id, 'currentId:', id);
+            return alert('课程代码已存在，请使用其他代码');
+        }
+    } catch (error) {
+        console.error('❌ 检查课程代码重复失败:', error);
+        return alert('检查课程代码失败，请重试');
+    }
+
     const course = {
         id: id || generateId('crs_'),
-        code: form.elements['code'].value,
-        name: form.elements['name'].value,
+        code: code,
+        name: name,
         credits: parseInt(form.elements['credits'].value),
         department: form.elements['department'].value
     };
 
-    await window.dbManager.add('courses', course);
-    courseModal.hide();
-    loadAllData();
+    try {
+        if (id) {
+            console.log('🔍 saveCourse - 执行更新操作');
+            await window.dbManager.update('courses', course);
+        } else {
+            console.log('🔍 saveCourse - 执行新增操作');
+            await window.dbManager.add('courses', course);
+        }
+        console.log('✅ 保存课程成功');
+        courseModal.hide();
+        loadAllData();
+    } catch (error) {
+        console.error('❌ 保存课程失败:', error);
+        alert('保存失败，请查看控制台');
+    }
 }
 
 async function deleteCourse(id) {
+    console.log('🗑️ deleteCourse 调用，id:', id);
     if (confirm('确定删除该课程吗？')) {
-        await window.dbManager.delete('courses', id);
-        loadAllData();
+        try {
+            const courseToDelete = await window.dbManager.get('courses', id);
+            if (!courseToDelete) {
+                console.log('❌ 课程不存在，id:', id);
+                alert('课程不存在或已被删除');
+                loadAllData();
+                return;
+            }
+            
+            await window.dbManager.delete('courses', id);
+            console.log('✅ 数据库删除成功，id:', id);
+            loadAllData();
+        } catch (error) {
+            console.error('❌ 删除课程失败:', error);
+            alert('删除失败，请查看控制台');
+        }
     }
 }
 
