@@ -148,9 +148,25 @@ function exportAllScores() {
  */
 function logout() {
     if (confirm('确定要退出登录吗？')) {
-        // 清除 session 或 token (如果有)
-        // 这里简单跳转回登录页
-        window.location.href = 'index.html';
+        try {
+            // 清除用户登录状态
+            if (typeof window.authService !== 'undefined') {
+                window.authService.logout();
+            }
+            
+            // 显示退出成功提示
+            alert('退出登录成功');
+            
+            // 跳转到登录页面（不携带role参数，允许用户自由选择身份）
+            setTimeout(() => {
+                window.location.href = '../public/login.html';
+            }, 1000);
+            
+        } catch (error) {
+            console.error('退出登录失败:', error);
+            // 即使出错也要跳转
+            window.location.href = '../public/login.html';
+        }
     }
 }
 
