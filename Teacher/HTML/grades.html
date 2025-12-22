@@ -363,5 +363,24 @@
         });
     </script>
     <script src="../JS/grades.js"></script>
+    <script>
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                try {
+                    if (typeof window.authService !== 'undefined') {
+                        window.authService.logout();
+                    }
+                    alert('退出登录成功');
+                    setTimeout(() => {
+                        window.location.href = '../../public/login.html';
+                    }, 1000);
+                } catch (error) {
+                    console.error('退出登录失败:', error);
+                    alert('退出登录失败，请重试');
+                }
+            }
+        }
+        document.querySelector('.logout-btn').addEventListener('click', handleLogout);
+    </script>
 </body>
 </html>

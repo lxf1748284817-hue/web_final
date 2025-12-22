@@ -556,31 +556,55 @@ class DatabaseManager {
      * 基础CRUD操作 - 兼容现有代码
      */
     async get(storeName, id) {
+        if (!this.db) {
+            try {
+                await this.init();
+            } catch (e) {
+                console.error('Database not initialized in get:', e);
+                return null;
+            }
+        }
+        if (!this.db) {
+            console.error('Database connection is closing or not available');
+            return null;
+        }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const request = store.get(id);
             request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+            request.onerror = () => resolve(null);
         });
     }
 
     async getAll(storeName, query = null) {
+        if (!this.db) {
+            try {
+                await this.init();
+            } catch (e) {
+                console.error('Database not initialized in getAll:', e);
+                return [];
+            }
+        }
+        if (!this.db) {
+            console.error('Database connection is closing or not available');
+            return [];
+        }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
         
         if (query && typeof query === 'object' && query.index) {
             const index = store.index(query.index);
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 const request = index.getAll(query.value);
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
+                request.onerror = () => resolve([]);
             });
         } else {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 const request = store.getAll();
                 request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
+                request.onerror = () => resolve([]);
             });
         }
     }

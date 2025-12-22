@@ -121,16 +121,10 @@ class AuthService {
      */
     async _findUser(username) {
         try {
-            const db = window.dbManager.getDatabase();
-            const tx = db.transaction(['users'], 'readonly');
-            const store = tx.objectStore('users');
-            const index = store.index('username');
-            
-            return new Promise((resolve, reject) => {
-                const request = index.get(username);
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
+            // 使用 DatabaseManager 的统一接口，避免直接操作 db.transaction
+            const users = await window.dbManager.getAll('users');
+            const user = users.find(u => u.username === username);
+            return user || null;
         } catch (error) {
             console.error('❌ 查找用户失败:', error);
             return null;
