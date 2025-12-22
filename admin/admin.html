@@ -1046,20 +1046,25 @@
                         console.log('课程表格:', document.querySelector('#course-table tbody'));
                         console.log('计划表格:', document.querySelector('#plan-table tbody'));
                         
-                        // 只渲染现有数据，直接传递而不是依赖全局变量
-                        renderClasses(classes);
-                        renderCourses(await window.dbManager.getAll('courses'));
-                        renderPlans(await window.dbManager.getAll('plans'));
-                        
-                        // 加载并渲染用户数据
+                        // 加载所有数据
+                        const plans = await window.dbManager.getAll('plans');
+                        const courses = await window.dbManager.getAll('courses');
                         const users = await window.dbManager.getAll('users');
+                        
+                        // 设置全局变量供其他函数使用
+                        window.currentPlans = plans;
+                        window.currentCourses = courses;
+                        window.currentUsers = users;
+                        
                         console.log('🔍 数据加载情况:');
                         console.log('用户数量:', users.length);
                         console.log('学生数量:', users.filter(u => u.role === 'student').length);
                         console.log('教师数量:', users.filter(u => u.role === 'teacher').length);
                         
-                        // 设置全局变量供渲染函数使用
-                        window.currentUsers = users;
+                        // 渲染所有数据
+                        renderClasses(classes);
+                        renderCourses(courses);
+                        renderPlans(plans);
                         renderStudents();
                         renderTeachers();
                         

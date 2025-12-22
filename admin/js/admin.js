@@ -743,9 +743,11 @@ let planState = {
     }
 };
 
-function renderPlans() {
+function renderPlans(data = null) {
     const tbody = document.querySelector('#plan-table tbody');
     if (!tbody) return;
+
+    const plans = data || currentPlans || [];
 
     // 1. 获取过滤条件
     const searchInput = document.getElementById('planSearchInput');
@@ -757,7 +759,7 @@ function renderPlans() {
     planState.filters.teacherId = teacherSelect ? teacherSelect.value : '';
 
     // 2. 过滤数据
-    let filtered = currentPlans.filter(p => {
+    let filtered = plans.filter(p => {
         const courseName = getCourseName(p.courseId).toLowerCase();
         const teacherName = getUserName(p.teacherId).toLowerCase();
         const classroom = p.classroom.toLowerCase();
@@ -1431,11 +1433,18 @@ function getClassName(id) {
 }
 
 function getCourseName(id) {
-    return currentCourses.find(c => c.id === id)?.name || '未知课程';
+    const courses = window.currentCourses || currentCourses || [];
+    return courses.find(c => c.id === id)?.name || '未知课程';
 }
 
 function getUserName(id, field = 'name') {
-    return currentUsers.find(u => u.id === id)?.[field] || '未知用户';
+    const users = window.currentUsers || currentUsers || [];
+    const user = users.find(u => u.id === id);
+    if (!user) {
+        console.log('🔍 未找到用户ID:', id, '可用用户IDs:', users.map(u => u.id));
+        return '未知用户';
+    }
+    return user[field];
 }
 
 function getGenderLabel(gender) {
