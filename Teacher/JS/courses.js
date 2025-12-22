@@ -774,7 +774,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 保存到IndexedDB
-            await window.dbManager.add('courses', courseData);
+            if (!currentEditCourseId) {
+                await window.dbManager.add('courses', courseData);
+            } else {
+                await window.dbManager.update('courses', courseData);
+            }
             
             // 重新加载课程数据
             courses = await window.dbManager.getAll('courses');
@@ -1163,7 +1167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.dbManager.add('courses', course);
+                await window.dbManager.update('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);
@@ -1195,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.dbManager.add('courses', course);
+                await window.dbManager.update('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);
@@ -1227,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 course.updatedAt = new Date().toISOString();
                 
                 // 保存到IndexedDB
-                await window.dbManager.add('courses', course);
+                await window.dbManager.update('courses', course);
                 
                 // 更新本地课程列表，避免重新从数据库加载
                 const courseIndex = courses.findIndex(c => c.id === id);

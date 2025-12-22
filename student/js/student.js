@@ -149,6 +149,11 @@ async function displayCourses(plans, enrolledPlanIds) {
         const course = await getDataById('courses', plan.courseId);
         if (!course) continue;
         
+        // ✅ 检查课程状态，只显示已发布的课程
+        if (course.status !== 'published' && course.status !== 'active') {
+            continue;
+        }
+        
         // ✅ 获取教师信息
         const teacher = await getDataById('users', plan.teacherId);
         const teacherName = teacher ? teacher.name : '未知教师';
