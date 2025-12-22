@@ -998,8 +998,10 @@
 
 <script type="module">
     // 导入统一服务
-    import { dbManager } from '../shared/DatabaseManager.js';
-    import { authService } from '../shared/AuthService.js';
+    // DatabaseManager 使用默认导出，直接导入
+    import '../shared/DatabaseManager.js';
+    // AuthService 使用默认导出，直接导入
+    import '../shared/AuthService.js';
 
     // 兼容现有代码
     window.dbManager = dbManager;
@@ -1021,6 +1023,62 @@
             
             // 加载现有脚本
             await loadScript('js/admin.js?v=3');
+            
+            // 等待脚本加载完成
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // 检查 admin.js 是否正确加载，但不重复触发 DOMContentLoaded
+            if (typeof loadAllData === 'function') {
+                console.log('✅ admin.js 加载完成，检查是否需要初始化数据');
+                
+                // 检查是否已经有数据，如果没有则初始化
+                try {
+                    const classes = await window.dbManager.getAll('classes');
+                    console.log('🔍 调试 - 数据检查，classes数量:', classes?.length || 0);
+                    
+                    if (classes && classes.length === 0) {
+                        console.log('🔄 首次加载，初始化数据');
+                        loadAllData();
+                    } else {
+                        console.log('✅ 数据已存在，渲染现有数据');
+                        console.log('🔍 调试 - 检查DOM元素:');
+                        console.log('班级表格:', document.querySelector('#class-table tbody'));
+                        console.log('课程表格:', document.querySelector('#course-table tbody'));
+                        console.log('计划表格:', document.querySelector('#plan-table tbody'));
+                        
+                        // 只渲染现有数据，直接传递而不是依赖全局变量
+                        renderClasses(classes);
+                        renderCourses(await window.dbManager.getAll('courses'));
+                        renderPlans(await window.dbManager.getAll('plans'));
+                        
+                        // 加载并渲染用户数据
+                        const users = await window.dbManager.getAll('users');
+                        console.log('🔍 数据加载情况:');
+                        console.log('用户数量:', users.length);
+                        console.log('学生数量:', users.filter(u => u.role === 'student').length);
+                        console.log('教师数量:', users.filter(u => u.role === 'teacher').length);
+                        
+                        // 设置全局变量供渲染函数使用
+                        window.currentUsers = users;
+                        renderStudents();
+                        renderTeachers();
+                        
+                        // 检查事件绑定
+                        setTimeout(() => {
+                            console.log('🔍 调试 - 检查事件绑定:');
+                            console.log('导航链接数量:', document.querySelectorAll('.navbar-nav .nav-link').length);
+                            console.log('仪表盘卡片数量:', document.querySelectorAll('.dashboard-card').length);
+                            console.log('Bootstrap是否加载:', typeof bootstrap !== 'undefined');
+                        }, 100);
+                    }
+                } catch (error) {
+                    console.error('❌ 数据加载失败:', error);
+                }
+            } else {
+                console.error('❌ admin.js 未正确加载');
+                // 如果admin.js未加载，重新加载页面
+                window.location.reload();
+            }
 
         } catch (error) {
             console.error('❌ 教学管理端初始化失败:', error);

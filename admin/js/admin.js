@@ -9,6 +9,9 @@ let currentPlans = [];
 let currentUsers = [];
 let currentScores = [];
 
+// 默认头像
+const DEFAULT_AVATAR = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktcGVyc29uLWZpbGwiIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZD0iTTMgMTRzLTEgMC0xLTEgMS00IDYtNCA2IDQgNiAxICAxIDF6Ii8+PHBhdGggZD0iTTggOGEzIDMgMCAxIDAgMC02IDMgMyAwIDAgMCAwIDZ6bTggNGMwLS45OTQtLjQxNy0xLjkyNy0xLjE1NS0yLjYwNUEyLjY4IDIuNjggMCAwIDAgMTIgMTJhMi42OCAyLjY4IDAgMCAwLTIuODQ1LS42MDVDNy40MTggMTIuMDczIDcgMTIuMDA2IDcgMTNjMCAwIC0xIDAtMSAxaDh6Ii8+PC9zdmc+';
+
 // 排序状态
 let sortState = {
     tableId: null,
@@ -56,34 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 parentDropdown.querySelector('.dropdown-toggle').classList.add('active');
             }
         }
-
-        // 3. 重新加载数据
-        loadAllData();
     };
 
-    // 绑定 Navbar 链接 (包括下拉菜单项) 和 返回按钮
-    document.querySelectorAll('.navbar-nav .nav-link, .navbar-brand, .dropdown-item, button[data-target]').forEach(link => {
-        link.addEventListener('click', (e) => {
-            const targetLink = e.currentTarget;
-            if (targetLink.classList.contains('disabled')) return;
-            if (targetLink.hasAttribute('data-bs-toggle')) return; // 忽略下拉菜单开关
-
-            e.preventDefault();
-            const targetId = targetLink.getAttribute('data-target');
-            handleNavigation(targetId);
-        });
-    });
-
-    // 绑定仪表盘卡片
-    document.querySelectorAll('.dashboard-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            const targetId = e.currentTarget.getAttribute('data-target');
-            handleNavigation(targetId);
-        });
-    });
-
     // 初始加载
-    loadAllData();
+    // loadAllData(); // 在HTML中已经调用了，这里不重复调用
 });
 
 /**
@@ -177,11 +156,19 @@ function logout() {
  */
 async function loadAllData() {
     try {
-        currentClasses = await db.getAll(STORAGE_KEYS.CLASSES) || [];
-        currentCourses = await db.getAll(STORAGE_KEYS.COURSES) || [];
-        currentPlans = await db.getAll(STORAGE_KEYS.COURSE_PLANS) || [];
-        currentUsers = await db.getAll(STORAGE_KEYS.USERS) || [];
-        currentScores = await db.getAll(STORAGE_KEYS.SCORES) || [];
+        currentClasses = await window.dbManager.getAll('classes') || [];
+        currentCourses = await window.dbManager.getAll('courses') || [];
+        currentPlans = await window.dbManager.getAll('plans') || [];
+        currentUsers = await window.dbManager.getAll('users') || [];
+        currentScores = await window.dbManager.getAll('scores') || [];
+
+        console.log('🔍 数据加载情况:');
+        console.log('班级数量:', currentClasses.length);
+        console.log('课程数量:', currentCourses.length);
+        console.log('计划数量:', currentPlans.length);
+        console.log('用户数量:', currentUsers.length);
+        console.log('学生数量:', currentUsers.filter(u => u.role === 'student').length);
+        console.log('教师数量:', currentUsers.filter(u => u.role === 'teacher').length);
 
         renderClasses();
         renderCourses();
@@ -199,26 +186,34 @@ async function loadAllData() {
 // 班级管理
 // ==========================================
 
-function renderClasses() {
+function renderClasses(data = null) {
+    const classesToRender = data || currentClasses;
+    console.log('🔍 renderClasses 调试 - 传入数据:', data, 'currentClasses:', currentClasses);
+    
     const tbody = document.querySelector('#class-table tbody');
-    if (!tbody) return;
-
-    let displayData = [...currentClasses];
-
-    // 处理排序
-    if (sortState.tableId === 'class-table' && sortState.field) {
-        displayData.sort((a, b) => {
-            let valA = a[sortState.field];
-            let valB = b[sortState.field];
-
-            // 简单的字符串/数字比较
-            if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
-            if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
+    if (!tbody) {
+        console.log('❌ renderClasses 调试 - 未找到班级表格 tbody');
+        return;
     }
 
-    tbody.innerHTML = displayData.map(cls => {
+    let displayData = [...classesToRender];
+    console.log('🔍 renderClasses 调试 - displayData:', displayData);
+
+    try {
+        // 处理排序
+        if (sortState.tableId === 'class-table' && sortState.field) {
+            displayData.sort((a, b) => {
+                let valA = a[sortState.field];
+                let valB = b[sortState.field];
+
+                // 简单的字符串/数字比较
+                if (valA < valB) return sortState.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return sortState.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        const html = displayData.map(cls => {
         const studentCount = currentUsers.filter(u => u.role === 'student' && u.classId === cls.id).length;
         return `
         <tr>
@@ -235,6 +230,13 @@ function renderClasses() {
             </td>
         </tr>
     `}).join('');
+    
+    tbody.innerHTML = html;
+    console.log('✅ renderClasses 调试 - HTML设置完成，行数:', displayData.length);
+        
+    } catch (error) {
+        console.error('❌ renderClasses 调试 - 渲染失败:', error);
+    }
 }
 
 function openClassModal(id = null) {
@@ -267,14 +269,14 @@ async function saveClass() {
         name: name
     };
 
-    await db.put(STORAGE_KEYS.CLASSES, cls);
+    await window.dbManager.add('classes', cls);
     classModal.hide();
     loadAllData();
 }
 
 async function deleteClass(id) {
     if (confirm('确定删除该班级吗？')) {
-        await db.delete(STORAGE_KEYS.CLASSES, id);
+        await window.dbManager.delete('classes', id);
         loadAllData();
     }
 }
@@ -322,7 +324,8 @@ function handleStudentSearch() {
 function renderStudents() {
     const tbody = document.querySelector('#student-table tbody');
     if (!tbody) return;
-    const students = currentUsers.filter(u => u.role === 'student');
+    const students = (window.currentUsers || currentUsers || []).filter(u => u.role === 'student');
+    console.log('🔍 renderStudents - 学生数据:', students.length, '个');
     
     // 简单的搜索过滤
     const searchInput = document.getElementById('studentSearch');
@@ -567,7 +570,7 @@ async function saveStudentProfile() {
         avatar: avatar
     };
 
-    await db.put(STORAGE_KEYS.USERS, updatedUser);
+    await window.dbManager.update('users', updatedUser);
     alert('保存成功');
     cancelEdit(); // 返回列表
     loadAllData(); // 刷新数据
@@ -586,7 +589,7 @@ async function saveStudent() {
         password: '123' // 默认密码
     };
 
-    await db.put(STORAGE_KEYS.USERS, student);
+    await window.dbManager.add('users', student);
     studentModal.hide();
     loadAllData();
 }
@@ -598,7 +601,8 @@ async function saveStudent() {
 function renderTeachers() {
     const tbody = document.querySelector('#teacher-table tbody');
     if (!tbody) return;
-    const teachers = currentUsers.filter(u => u.role === 'teacher');
+    const teachers = (window.currentUsers || currentUsers || []).filter(u => u.role === 'teacher');
+    console.log('🔍 renderTeachers - 教师数据:', teachers.length, '个');
     
     tbody.innerHTML = teachers.map(t => `
         <tr>
@@ -643,14 +647,14 @@ async function saveTeacher() {
         password: '123'
     };
 
-    await db.put(STORAGE_KEYS.USERS, teacher);
+    await window.dbManager.add('users', teacher);
     teacherModal.hide();
     loadAllData();
 }
 
 async function deleteUser(id) {
     if (confirm('确定删除该用户吗？')) {
-        await db.delete(STORAGE_KEYS.USERS, id);
+        await window.dbManager.delete('users', id);
         loadAllData();
     }
 }
@@ -659,10 +663,13 @@ async function deleteUser(id) {
 // 课程管理
 // ==========================================
 
-function renderCourses() {
+function renderCourses(data = null) {
+    const coursesToRender = data || currentCourses;
+    console.log('🔍 renderCourses 调试 - 传入数据:', data, 'currentCourses:', currentCourses);
+    
     const tbody = document.querySelector('#course-table tbody');
     if (!tbody) return;
-    tbody.innerHTML = currentCourses.map(c => `
+    tbody.innerHTML = coursesToRender.map(c => `
         <tr>
             <td>${c.code}</td>
             <td>${c.name}</td>
@@ -709,14 +716,14 @@ async function saveCourse() {
         department: form.elements['department'].value
     };
 
-    await db.put(STORAGE_KEYS.COURSES, course);
+    await window.dbManager.add('courses', course);
     courseModal.hide();
     loadAllData();
 }
 
 async function deleteCourse(id) {
     if (confirm('确定删除该课程吗？')) {
-        await db.delete(STORAGE_KEYS.COURSES, id);
+        await window.dbManager.delete('courses', id);
         loadAllData();
     }
 }
@@ -1052,14 +1059,14 @@ async function savePlan() {
         maxStudents: parseInt(maxStudents)
     };
 
-    await db.put(STORAGE_KEYS.COURSE_PLANS, plan);
+    await window.dbManager.add('plans', plan);
     planModal.hide();
     loadAllData();
 }
 
 async function deletePlan(id) {
     if (confirm('确定删除该计划吗？')) {
-        await db.delete(STORAGE_KEYS.COURSE_PLANS, id);
+        await window.dbManager.delete('plans', id);
         loadAllData();
     }
 }
@@ -1068,6 +1075,9 @@ async function deletePlan(id) {
 
 function formatTimeSlots(str) {
     // 简单美化显示
+    if (!str || typeof str !== 'string') {
+        return str || '-';
+    }
     return str.replace(/,/g, '、');
 }
 
@@ -1406,7 +1416,7 @@ async function publishScore(planId) {
     const planScores = currentScores.filter(s => s.coursePlanId === planId);
     for (const s of planScores) {
         s.status = 'published';
-        await db.put(STORAGE_KEYS.SCORES, s);
+        await window.dbManager.update('scores', s);
     }
     
     loadAllData();
@@ -1481,3 +1491,42 @@ window.triggerAvatarUpload = triggerAvatarUpload;
 window.handleAvatarChange = handleAvatarChange;
 
 console.log('Admin script loaded successfully.');
+
+// 事件绑定
+function bindEvents() {
+    // 绑定所有带data-target的元素
+    const allLinks = document.querySelectorAll('[data-target]');
+    
+    allLinks.forEach(link => {
+        link.onclick = function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            if (targetId) {
+                // 直接在这里处理导航
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.style.display = 'none';
+                });
+                
+                const targetSection = document.getElementById(targetId);
+                if (targetSection) {
+                    targetSection.style.display = 'block';
+                }
+
+                // 更新 Navbar 激活状态
+                document.querySelectorAll('.navbar-nav .nav-link').forEach(l => l.classList.remove('active'));
+                
+                const activeLink = document.querySelector(`.navbar-nav .nav-link[data-target="${targetId}"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                    const parentDropdown = activeLink.closest('.dropdown');
+                    if (parentDropdown) {
+                        parentDropdown.querySelector('.dropdown-toggle').classList.add('active');
+                    }
+                }
+            }
+        };
+    });
+}
+
+// 延迟绑定
+setTimeout(bindEvents, 1000);
