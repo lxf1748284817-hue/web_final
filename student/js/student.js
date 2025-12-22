@@ -441,9 +441,20 @@ async function calculateCourseProgress(planId) {
     try {
         // 获取该课程的所有作业（兼容courseId和planId）
         const allAssignments = await getAllData('assignments');
-        const assignments = allAssignments.filter(a => 
-            a.planId === planId || a.courseId === planId
-        );
+        
+        // 获取当前开课计划信息，用于匹配课程ID
+        const plan = await getDataById('plans', planId);
+        const courseId = plan ? plan.courseId : null;
+        
+        const assignments = allAssignments.filter(a => {
+            // 如果作业有planId，直接匹配planId
+            if (a.planId === planId) return true;
+            
+            // 如果作业有courseId，匹配当前开课计划的courseId
+            if (a.courseId && courseId && a.courseId === courseId) return true;
+            
+            return false;
+        });
         
         if (assignments.length === 0) {
             return 0; // 没有作业，进度为0
@@ -452,12 +463,26 @@ async function calculateCourseProgress(planId) {
         // 获取当前学生的提交记录
         const allSubmissions = await getDataByIndex('assignment_submissions', 'studentId', currentStudent.id);
         
-        // 过滤出属于该课程的提交
+        // 过滤出属于该课程的提交（处理ID类型匹配问题）
         const assignmentIds = assignments.map(a => a.id);
-        const courseSubmissions = allSubmissions.filter(s => assignmentIds.includes(s.assignmentId));
+        console.log('📋 课程作业ID列表:', assignmentIds);
+        console.log('📝 所有提交记录:', allSubmissions);
+        
+        const courseSubmissions = allSubmissions.filter(s => {
+            return assignmentIds.some(assignmentId => {
+                // 尝试多种类型匹配
+                return s.assignmentId == assignmentId; // 使用 == 而不是 === 进行类型转换比较
+            });
+        });
+        
+        console.log('✅ 匹配的提交记录:', courseSubmissions);
+        console.log('📊 作业总数:', assignments.length);
+        console.log('📊 提交数:', courseSubmissions.length);
         
         // 计算进度：已提交作业数 / 总作业数
         const progress = Math.floor((courseSubmissions.length / assignments.length) * 100);
+        
+        console.log('📈 计算出的进度:', progress + '%');
         
         return progress;
     } catch (error) {
@@ -853,9 +878,23 @@ async function loadCourseAssignments(planId) {
         for (const assignment of assignments) {
             console.log('📋 处理作业:', assignment);
             
-            // 检查是否已提交
+            // 检查是否已提交（处理ID类型匹配问题）
             const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignment.id);
-            const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
+            
+            // 如果没有找到提交记录，尝试用不同类型的ID查询
+            let allSubmissions = submissions;
+            if (submissions.length === 0) {
+                // 尝试用字符串ID查询
+                const strSubmissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignment.id.toString());
+                allSubmissions = allSubmissions.concat(strSubmissions);
+                // 如果assignment.id是数字，也尝试用数字查询
+                if (!isNaN(assignment.id)) {
+                    const numSubmissions = await getDataByIndex('assignment_submissions', 'assignmentId', parseInt(assignment.id));
+                    allSubmissions = allSubmissions.concat(numSubmissions);
+                }
+            }
+            
+            const mySubmission = allSubmissions.find(s => s.studentId === currentStudent.id);
             
             const isOverdue = new Date(assignment.deadline) < new Date();
             const statusClass = mySubmission ? 'submitted' : (isOverdue ? 'overdue' : 'pending');
@@ -999,11 +1038,13 @@ async function submitAssignment(assignmentId) {
         
         alert('✅ 作业提交成功！');
         
-        // 刷新作业列表
-        await loadCourseAssignments(currentCourseId);
-        
-        // 刷新我的课程页面（更新进度）
-        await loadMyCourses();
+        // 强制刷新作业列表（清除缓存）
+        setTimeout(async () => {
+            await loadCourseAssignments(currentCourseId);
+            
+            // 刷新我的课程页面（更新进度）
+            await loadMyCourses();
+        }, 100);
     } catch (error) {
         console.error('提交作业失败:', error);
         alert('❌ 提交失败，请重试！');
