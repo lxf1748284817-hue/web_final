@@ -77,4 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('❌ 数据库初始化失败:', error);
     }
+    
+    // 标记数据库初始化完成
+    window.dbInitialized = true;
 });

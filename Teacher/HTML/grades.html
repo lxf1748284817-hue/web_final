@@ -309,9 +309,59 @@
     <!-- 添加SheetJS库支持Excel文件解析 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="../../shared/DatabaseManager.js"></script>
+    <script src="../../shared/AuthService.js"></script>
     <script src="../JS/db-init.js"></script>
-    <script src="../JS/data-sync.js"></script>
-    <!-- <script src="../JS/auth.js"></script> -->
+    
+    <script>
+        // 初始化成绩页面
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 等待数据库初始化完成
+                let attempts = 0;
+                while (!window.dbInitialized && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (!window.dbInitialized) {
+                    console.error('数据库初始化超时');
+                    alert('系统初始化失败，请刷新页面重试');
+                    return;
+                }
+                
+                // 检查登录状态
+                const session = await authService.checkSession();
+                if (!session || session.role !== 'teacher') {
+                    alert('请先登录教师端！');
+                    window.location.href = '../../public/login.html?role=teacher';
+                    return;
+                }
+                
+                // 等待 gradesManager 可用
+                attempts = 0;
+                while (!window.gradesManager && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                if (!window.gradesManager) {
+                    console.error('gradesManager 未能加载');
+                    alert('系统初始化失败，请刷新页面重试');
+                    return;
+                }
+                
+                // 调用 grades.js 的初始化函数
+                if (window.initGradesPage) {
+                    await window.initGradesPage();
+                    console.log('✅ 成绩录入页面初始化完成');
+                } else {
+                    console.error('initGradesPage 函数未定义');
+                }
+            } catch (error) {
+                console.error('❌ 成绩页面初始化失败:', error);
+            }
+        });
+    </script>
     <script src="../JS/grades.js"></script>
 </body>
 </html>

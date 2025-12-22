@@ -4,13 +4,22 @@ let homeworkAssignments = [];
 let examAssignments = [];
 let submissions = [];
 
-// 初始化
-document.addEventListener('DOMContentLoaded', async function() {
-    await initPage();
-});
+// 导出初始化函数
+window.initExamsPage = initPage;
 
 async function initPage() {
     try {
+        // 等待courseManager可用
+        let retries = 0;
+        while (!window.courseManager && retries < 10) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
+        
+        if (!window.courseManager) {
+            throw new Error('courseManager未初始化');
+        }
+        
         // 从IndexedDB加载课程数据
         courses = await window.courseManager.getPublishedCourses();
         // 从IndexedDB加载作业、考试和提交数据

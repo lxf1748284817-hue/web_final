@@ -3,7 +3,8 @@
  * 主要功能：成绩录入、批量导入、数据计算与验证
  */
 
-document.addEventListener('DOMContentLoaded', async function() {
+// 导出初始化函数
+window.initGradesPage = async function() {
     console.log('=== 成绩页面开始加载 ===');
     
     // 初始化统一数据库
@@ -31,27 +32,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 课程进度数据
     let courseProgress = {};
     
-    // 检查数据管理器是否可用
-    if (!window.dataManager) {
-        console.error('数据管理器未初始化，等待...');
+    // 检查 gradesManager 是否可用
+    if (!window.gradesManager) {
+        console.error('gradesManager 未初始化，等待...');
         setTimeout(async () => {
-            if (!window.dataManager) {
-                console.error('数据管理器仍然不可用，手动初始化...');
-                // 尝试手动初始化
-                try {
-                    await init();
-                } catch (error) {
-                    console.error('手动初始化失败:', error);
-                }
+            if (!window.gradesManager) {
+                console.error('gradesManager 仍然不可用');
+                showNotification('系统初始化失败，请刷新页面重试', 'error');
+                return;
             } else {
                 await init();
             }
         }, 1000);
         return;
     }
-    
-    console.log('数据管理器已就绪，开始初始化...');
-    
+
+    console.log('gradesManager 已就绪，开始初始化...');
+
     // 初始化
     await init();
     
@@ -1707,4 +1704,4 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('drop-area').style.borderColor = '#bdc3c7';
         document.getElementById('drop-area').style.backgroundColor = '#f8f9fa';
     }
-});
+}

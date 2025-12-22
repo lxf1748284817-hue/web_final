@@ -214,9 +214,39 @@
     </div>
     
     <script src="../../shared/DatabaseManager.js"></script>
+    <script src="../../shared/AuthService.js"></script>
     <script src="../JS/db-init.js"></script>
-    <script src="../JS/data-sync.js"></script>
 
+    <script>
+        // 初始化系统
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // 先初始化数据库
+                await dbManager.init();
+                
+                // 等待courseManager可用
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // 检查登录状态
+                const session = await authService.checkSession();
+                if (!session || session.role !== 'teacher') {
+                    alert('请先登录教师端！');
+                    window.location.href = '../../public/login.html?role=teacher';
+                    return;
+                }
+                
+                console.log('✅ 考试管理页面初始化完成');
+                
+                // 调用考试页面初始化
+                if (typeof window.initExamsPage === 'function') {
+                    await window.initExamsPage();
+                    console.log('✅ 考试页面初始化完成');
+                }
+            } catch (error) {
+                console.error('❌ 系统初始化失败:', error);
+            }
+        });
+    </script>
     <script src="../JS/exams.js"></script>
 </body>
 </html>
