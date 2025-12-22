@@ -75,7 +75,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 },
                 getExamAssignments: () => [],
-                getSubmissions: () => [],
+                getSubmissions: async () => {
+                    try {
+                        console.log('📝 获取提交记录列表...');
+                        const submissions = await window.dbManager.getAll('assignment_submissions');
+                        console.log('📋 提交记录列表:', submissions);
+                        return submissions || [];
+                    } catch (error) {
+                        console.error('❌ 获取提交记录失败:', error);
+                        return [];
+                    }
+                },
                 saveHomeworkAssignment: async (assignment) => {
                     try {
                         console.log('💾 保存作业到数据库:', assignment);

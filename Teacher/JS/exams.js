@@ -218,13 +218,23 @@ function renderHomeworkList() {
     list.innerHTML = '';
     
     homeworkAssignments.forEach(hw => {
+        // 实时计算该作业的提交人数
+        const hwSubmissions = submissions.filter(s => {
+            // 使用类型转换比较解决ID匹配问题
+            return s.assignmentId == hw.id && 
+                   (s.assignmentType === 'homework' || !s.assignmentType); // 兼容历史记录
+        });
+        
+        const submissionCount = hwSubmissions.length;
+        const gradedCount = hwSubmissions.filter(s => s.graded && s.score !== null).length;
+        
         const item = document.createElement('div');
         item.className = 'assignment-item';
         item.innerHTML = `
             <div class="assignment-header">
                 <div class="assignment-title">${hw.title}</div>
                 <span class="assignment-status">
-                    已提交: ${hw.submissions} | 已批改: ${hw.graded}
+                    已提交: ${submissionCount} | 已批改: ${gradedCount}
                 </span>
             </div>
             <div class="assignment-meta">
@@ -774,9 +784,23 @@ async function submitGrade() {
 
 // 查看提交情况
 function viewSubmissions(assignmentId, type) {
-    const assignmentSubmissions = submissions.filter(s => 
-        s.assignmentId === assignmentId && s.assignmentType === type
-    );
+    console.log('🔍 查看提交情况，assignmentId:', assignmentId, 'type:', type);
+    console.log('📋 所有提交记录:', submissions);
+    
+    const assignmentSubmissions = submissions.filter(s => {
+        console.log('🔍 检查提交记录:', s, 'assignmentId:', s.assignmentId, 'type:', s.assignmentType, '目标ID:', assignmentId, '目标type:', type);
+        
+        // 使用类型转换比较解决ID匹配问题
+        const idMatch = s.assignmentId == assignmentId;
+        // 兼容历史记录：如果assignmentType不存在，默认认为是homework
+        const typeMatch = s.assignmentType === type || (!s.assignmentType && type === 'homework');
+        
+        console.log('ID匹配:', idMatch, '类型匹配:', typeMatch, 's.assignmentType:', s.assignmentType);
+        
+        return idMatch && typeMatch;
+    });
+    
+    console.log('✅ 匹配的提交记录:', assignmentSubmissions);
     
     let message = `提交情况 (共${assignmentSubmissions.length}人):\n\n`;
     assignmentSubmissions.forEach(sub => {

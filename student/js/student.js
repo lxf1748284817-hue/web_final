@@ -1015,6 +1015,7 @@ async function submitAssignment(assignmentId) {
         const submission = {
             id: `sub_${assignmentId}_${currentStudent.id}`,
             assignmentId: assignmentId,
+            assignmentType: 'homework', // 添加作业类型字段
             studentId: currentStudent.id,
             content: '作业已提交',
             fileName: null,
