@@ -1,204 +1,244 @@
 // dashboard.js - 完整更新
+
+// 全局函数，供 dashboard.html 调用
+window.showLoadingState = function() {
+    const courseCardsContainer = document.getElementById('dashboard-course-cards');
+    
+    if (courseCardsContainer) {
+        courseCardsContainer.innerHTML = `
+            <div class="loading-courses">
+                <div class="spinner"></div>
+                <p>正在加载课程数据...</p>
+            </div>
+        `;
+    }
+};
+
+window.updateWelcomeMessage = function(courseCount, pendingGrading, upcomingExams) {
+    const welcomeMessage = document.querySelector('.welcome-card p');
+    if (welcomeMessage) {
+        // 保持欢迎消息为空，只显示统计卡片
+        welcomeMessage.textContent = '';
+    }
+};
+
+window.updateCourseOverview = async function(courses) {
+    const courseCardsContainer = document.getElementById('dashboard-course-cards');
+    if (!courseCardsContainer) return;
+    
+    // 过滤出已发布的课程
+    const publishedCourses = courses.filter(course => course.status === 'published' || course.status === 'active');
+    
+    // 清空容器
+    courseCardsContainer.innerHTML = '';
+    
+    // 如果没有已发布的课程
+    if (publishedCourses.length === 0) {
+        courseCardsContainer.innerHTML = `
+            <div class="no-courses-message">
+                <i class="fas fa-book-open"></i>
+                <h3>暂无已发布的课程</h3>
+                <p>请前往"课程管理"创建并发布您的第一门课程</p>
+                <a href="courses.html" class="btn-primary">前往课程管理</a>
+            </div>
+        `;
+        return;
+    }
+    
+    // 显示所有已发布的课程
+    for (const course of publishedCourses) {
+        const courseCard = await window.createCourseCard(course);
+        courseCardsContainer.appendChild(courseCard);
+    }
+};
+
+window.createCourseCard = async function(course) {
+    // 从数据库获取真实的作业和考试数量
+    let homeworkCount = 0;
+    let examCount = 0;
+    
+    try {
+        if (window.gradesManager) {
+            const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
+            const examAssignments = await window.gradesManager.getExamAssignments();
+            homeworkCount = homeworkAssignments.filter(hw => hw.courseId === course.id).length;
+            examCount = examAssignments.filter(exam => exam.courseId === course.id).length;
+        }
+    } catch (error) {
+        console.warn('获取作业考试数据失败:', error);
+    }
+    
+    const assignmentCount = homeworkCount + examCount;
+    const studentCount = Math.floor(Math.random() * 30) + 20;
+    
+    // 根据课程状态确定徽章样式
+    let statusClass = '';
+    let statusText = '';
+    
+    switch (course.status) {
+        case 'published':
+            statusClass = 'published';
+            statusText = '已发布';
+            break;
+        case 'draft':
+            statusClass = 'draft';
+            statusText = '草稿';
+            break;
+        case 'archived':
+            statusClass = 'archived';
+            statusText = '已归档';
+            break;
+        default:
+            statusClass = 'draft';
+            statusText = '草稿';
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'course-card';
+    card.dataset.courseId = course.id;
+    
+    card.innerHTML = `
+        <div class="course-header">
+            <h3>${course.name}</h3>
+            <span class="course-status ${statusClass}">${statusText}</span>
+        </div>
+        <p class="course-code">${course.code} · ${course.class || '未设置班级'}</p>
+        <div class="course-stats">
+            <div class="course-stat">
+                <i class="fas fa-user-graduate"></i>
+                <span>${studentCount} 名学生</span>
+            </div>
+            <div class="course-stat">
+                <i class="fas fa-file-alt"></i>
+                <span>${assignmentCount} 个作业</span>
+            </div>
+        </div>
+        <div class="course-actions">
+            <a href="courses.html?edit=${course.id}" class="btn-course">管理课程</a>
+            <a href="grades.html?course=${course.id}" class="btn-course secondary">录入成绩</a>
+        </div>
+    `;
+    
+    return card;
+};
+
+window.loadDashboardData = async function() {
+    console.log('[DEBUG] loadDashboardData started');
+    window.showLoadingState();
+    try {
+        // 直接从数据库获取课程数据
+        const courses = await window.dbManager.getAll('courses');
+        console.log('[DEBUG] courses from database:', courses);
+        
+        // 更新欢迎区域的统计数据（不再需要作业和考试数据参数）
+        await window.updateWelcomeStats(courses);
+        
+        // 更新课程概览
+        window.updateCourseOverview(courses);
+    } catch (error) {
+        console.error('[DEBUG] loadDashboardData error:', error);
+        window.updateWelcomeStats([]);
+        window.updateCourseOverview([]);
+    }
+};
+
+window.updateWelcomeStats = async function(courses) {
+    // 获取当前教师 ID
+    let teacherId = null;
+    let session = null;
+    if (window.authService) {
+        session = await window.authService.checkSession();
+        teacherId = session?.id;
+    }
+    console.log('[DEBUG] session:', session);
+    console.log('[DEBUG] teacherId:', teacherId);
+
+    if (!teacherId) {
+        console.log('[DEBUG] 未获取到教师ID，显示0');
+        document.getElementById('active-course-count').textContent = '0';
+        document.getElementById('total-students').textContent = '0';
+        document.getElementById('pending-tasks').textContent = '0';
+        return;
+    }
+
+    // 1. 进行中的课程：plans.teacherId = teacherId，且关联的课程存在
+    const plans = await window.dbManager.getAll('plans');
+    console.log('[DEBUG] all plans:', plans);
+    const teacherPlans = plans.filter(p => p.teacherId === teacherId);
+    console.log('[DEBUG] teacherPlans:', teacherPlans);
+    const planCourseIds = teacherPlans.map(p => p.courseId);
+    console.log('[DEBUG] planCourseIds:', planCourseIds);
+    const teacherCourses = courses.filter(c => planCourseIds.includes(c.id));
+    console.log('[DEBUG] teacherCourses:', teacherCourses);
+    const publishedCourses = teacherCourses.filter(course => course.status === 'published' || course.status === 'active');
+    console.log('[DEBUG] publishedCourses:', publishedCourses);
+    const activeCourseCount = publishedCourses.length;
+    console.log('[DEBUG] activeCourseCount:', activeCourseCount);
+
+    // 2. 学生总数：enrollments 中 planId 在 teacherPlans 里的学生去重
+    const enrollments = await window.dbManager.getAll('enrollments');
+    console.log('[DEBUG] all enrollments:', enrollments);
+    const teacherEnrollments = enrollments.filter(e => teacherPlans.some(p => p.id === e.planId));
+    console.log('[DEBUG] teacherEnrollments:', teacherEnrollments);
+    const uniqueStudentIds = [...new Set(teacherEnrollments.map(e => e.studentId))];
+    const totalStudents = uniqueStudentIds.length;
+    console.log('[DEBUG] totalStudents:', totalStudents);
+
+    // 3. 待完成任务：未批改的作业 + 未批改的考试
+    const assignments = await window.dbManager.getAll('assignments');
+    console.log('[DEBUG] all assignments:', assignments);
+    const teacherAssignments = assignments.filter(a => teacherPlans.some(p => p.id === a.planId));
+    console.log('[DEBUG] teacherAssignments:', teacherAssignments);
+    const homeworkList = teacherAssignments.filter(a => a.type === 'homework');
+    const examList = teacherAssignments.filter(a => a.type === 'exam');
+    console.log('[DEBUG] homeworkList:', homeworkList);
+    console.log('[DEBUG] examList:', examList);
+
+    const submissions = await window.dbManager.getAll('assignment_submissions');
+    console.log('[DEBUG] all submissions:', submissions);
+    let ungradedHomeworkCount = 0;
+    for (const hw of homeworkList) {
+        const subs = submissions.filter(s => s.assignmentId === hw.id);
+        if (subs.length > 0) ungradedHomeworkCount++;
+    }
+    let ungradedExamCount = 0;
+    for (const exam of examList) {
+        const subs = submissions.filter(s => s.assignmentId === exam.id);
+        if (subs.length > 0) ungradedExamCount++;
+    }
+    const pendingTasks = ungradedHomeworkCount + ungradedExamCount;
+    console.log('[DEBUG] pendingTasks:', pendingTasks);
+
+    // 更新 DOM
+    const activeCourseCountEl = document.getElementById('active-course-count');
+    const totalStudentsEl = document.getElementById('total-students');
+    const pendingTasksEl = document.getElementById('pending-tasks');
+
+    if (activeCourseCountEl) activeCourseCountEl.textContent = activeCourseCount;
+    if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+    if (pendingTasksEl) pendingTasksEl.textContent = pendingTasks;
+
+    window.updateWelcomeMessage(activeCourseCount, pendingTasks, ungradedHomeworkCount, ungradedExamCount);
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化页面
     initDashboard();
     
     function initDashboard() {
         // 加载课程数据
-        loadDashboardData();
+        window.loadDashboardData();
         
         // 设置事件监听器
         setupEventListeners();
     }
-    
-    async function loadDashboardData() {
-        // 显示加载状态
-        showLoadingState();
-        
-        try {
-            // 使用course-manager模块获取课程数据
-            const courses = await window.courseManager.getCourses();
-            
-            // 加载作业和考试数据
-            const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
-            const examAssignments = await window.gradesManager.getExamAssignments();
-            
-            // 更新欢迎区域的统计数据
-            updateWelcomeStats(courses, homeworkAssignments, examAssignments);
-            
-            // 更新课程概览
-            updateCourseOverview(courses);
-        } catch (error) {
-            console.error('加载仪表板数据失败:', error);
-            // 后备方案：使用空数据
-            updateWelcomeStats([], [], []);
-            updateCourseOverview([]);
-        }
-    }
-    
-
-    
-    function showLoadingState() {
-        const courseCardsContainer = document.getElementById('dashboard-course-cards');
-        
-        if (courseCardsContainer) {
-            courseCardsContainer.innerHTML = `
-                <div class="loading-courses">
-                    <div class="spinner"></div>
-                    <p>正在加载课程数据...</p>
-                </div>
-            `;
-        }
-    }
-    
-    function updateWelcomeStats(courses, homeworkAssignments, examAssignments) {
-        // 计算已发布的课程数量
-        const publishedCourses = courses.filter(course => course.status === 'published' || course.status === 'active');
-        
-        // 计算学生总数（模拟数据，实际应该从课程数据中获取）
-        const totalStudents = publishedCourses.length * 45; // 假设每门课程平均45名学生
-        
-        // 计算待批改作业数量
-        const pendingGrading = homeworkAssignments.filter(hw => hw.submissions > hw.graded).length + 
-                              examAssignments.filter(exam => exam.submissions > exam.graded).length;
-        
-        // 计算需要安排的考试数量（未来7天内需要安排的考试）
-        const now = new Date();
-        const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const upcomingExams = examAssignments.filter(exam => {
-            const examDate = new Date(exam.startTime);
-            return examDate >= now && examDate <= sevenDaysLater;
-        }).length;
-        
-        // 更新DOM元素
-        const activeCourseCountEl = document.getElementById('active-course-count');
-        const totalStudentsEl = document.getElementById('total-students');
-        const pendingTasksEl = document.getElementById('pending-tasks');
-        
-        if (activeCourseCountEl) activeCourseCountEl.textContent = publishedCourses.length;
-        if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
-        if (pendingTasksEl) pendingTasksEl.textContent = 0; // 待完成任务数量设为0，因为待办事项模块已删除
-        
-        // 更新欢迎消息
-        updateWelcomeMessage(publishedCourses.length, 0, pendingGrading, upcomingExams);
-    }
-    
-    function updateWelcomeMessage(courseCount, pendingGrading, upcomingExams) {
-        const welcomeMessage = document.querySelector('.welcome-card p');
-        if (welcomeMessage) {
-            // 保持欢迎消息为空，只显示统计卡片
-            welcomeMessage.textContent = '';
-        }
-    }
-    
-    async function updateCourseOverview(courses) {
-        const courseCardsContainer = document.getElementById('dashboard-course-cards');
-        if (!courseCardsContainer) return;
-        
-        // 过滤出已发布的课程
-        const publishedCourses = courses.filter(course => course.status === 'published' || course.status === 'active');
-        
-        // 清空容器
-        courseCardsContainer.innerHTML = '';
-        
-        // 如果没有已发布的课程
-        if (publishedCourses.length === 0) {
-            courseCardsContainer.innerHTML = `
-                <div class="no-courses-message">
-                    <i class="fas fa-book-open"></i>
-                    <h3>暂无已发布的课程</h3>
-                    <p>请前往"课程管理"创建并发布您的第一门课程</p>
-                    <a href="courses.html" class="btn-primary">前往课程管理</a>
-                </div>
-            `;
-            return;
-        }
-        
-        // 显示所有已发布的课程
-        for (const course of publishedCourses) {
-            const courseCard = await createCourseCard(course);
-            courseCardsContainer.appendChild(courseCard);
-        }
-    }
-    
-    async function createCourseCard(course) {
-        // 从数据库获取真实的作业和考试数量
-        let homeworkCount = 0;
-        let examCount = 0;
-        
-        try {
-            if (window.gradesManager) {
-                const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
-                const examAssignments = await window.gradesManager.getExamAssignments();
-                homeworkCount = homeworkAssignments.filter(hw => hw.courseId === course.id).length;
-                examCount = examAssignments.filter(exam => exam.courseId === course.id).length;
-            }
-        } catch (error) {
-            console.warn('获取作业考试数据失败:', error);
-        }
-        
-        const assignmentCount = homeworkCount + examCount;
-        const studentCount = Math.floor(Math.random() * 30) + 20;
-        
-        // 根据课程状态确定徽章样式
-        let statusClass = '';
-        let statusText = '';
-        
-        switch (course.status) {
-            case 'published':
-                statusClass = 'published';
-                statusText = '已发布';
-                break;
-            case 'draft':
-                statusClass = 'draft';
-                statusText = '草稿';
-                break;
-            case 'archived':
-                statusClass = 'archived';
-                statusText = '已归档';
-                break;
-            default:
-                statusClass = 'draft';
-                statusText = '草稿';
-        }
-        
-        const card = document.createElement('div');
-        card.className = 'course-card';
-        card.dataset.courseId = course.id;
-        
-        card.innerHTML = `
-            <div class="course-header">
-                <h3>${course.name}</h3>
-                <span class="course-status ${statusClass}">${statusText}</span>
-            </div>
-            <p class="course-code">${course.code} · ${course.class || '未设置班级'}</p>
-            <div class="course-stats">
-                <div class="course-stat">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>${studentCount} 名学生</span>
-                </div>
-                <div class="course-stat">
-                    <i class="fas fa-file-alt"></i>
-                    <span>${assignmentCount} 个作业</span>
-                </div>
-            </div>
-            <div class="course-actions">
-                <a href="courses.html?edit=${course.id}" class="btn-course">管理课程</a>
-                <a href="grades.html?course=${course.id}" class="btn-course secondary">录入成绩</a>
-            </div>
-        `;
-        
-        return card;
-    }
-    
-
     
     function setupEventListeners() {
         // 刷新按钮（如果需要）
         const refreshBtn = document.getElementById('refresh-dashboard');
         if (refreshBtn) {
             refreshBtn.addEventListener('click', function() {
-                loadDashboardData();
+                window.loadDashboardData();
                 showNotification('数据已刷新！', 'success');
             });
         }
@@ -206,14 +246,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // 监听storage事件（当其他页面修改了数据时）
         window.addEventListener('storage', function(e) {
             if (e.key === 'teacherCourses' || e.key === 'teacherTodos') {
-                loadDashboardData();
+                window.loadDashboardData();
                 showNotification('检测到数据更新，已刷新页面内容。', 'info');
             }
         });
         
         // 监听自定义事件（在同一页面内触发）
         window.addEventListener('courseDataUpdated', function() {
-            loadDashboardData();
+            window.loadDashboardData();
         });
     }
     
