@@ -293,13 +293,7 @@ async function confirmEnroll() {
     try {
         // ✅ 生成选课记录 ID
         const enrollmentId = `sc_${currentStudent.id}_${selectedCourseId}`;
-        
-        // 调试：输出选课信息
-        console.log('🔍 选课调试信息:');
-        console.log('学生ID:', currentStudent.id);
-        console.log('开课计划ID:', selectedCourseId);
-        console.log('选课记录ID:', enrollmentId);
-        
+
         // 添加选课记录
         await addData('enrollments', {
             id: enrollmentId,
@@ -308,24 +302,12 @@ async function confirmEnroll() {
             enrollDate: new Date().toISOString().split('T')[0],
             status: 'active'
         });
-        
-        // 调试：验证选课记录是否成功添加
-        const addedEnrollment = await getDataById('enrollments', enrollmentId);
-        if (addedEnrollment) {
-            console.log('✅ 选课记录成功录入数据库:', addedEnrollment);
-        } else {
-            console.error('❌ 选课记录添加失败');
-        }
-        
+
         // 更新开课计划人数
         const plan = await getDataById('plans', selectedCourseId);
         plan.enrolled = (plan.enrolled || 0) + 1;
         await updateData('plans', plan);
-        
-        // 调试：验证开课计划人数更新
-        const updatedPlan = await getDataById('plans', selectedCourseId);
-        console.log('📊 开课计划更新后人数:', updatedPlan.enrolled);
-        
+
         alert('选课成功！');
         closeEnrollModal();
         loadCourses(); // 重新加载课程列表
@@ -465,25 +447,17 @@ async function calculateCourseProgress(planId) {
         
         // 过滤出属于该课程的提交（处理ID类型匹配问题）
         const assignmentIds = assignments.map(a => a.id);
-        console.log('📋 课程作业ID列表:', assignmentIds);
-        console.log('📝 所有提交记录:', allSubmissions);
-        
+
         const courseSubmissions = allSubmissions.filter(s => {
             return assignmentIds.some(assignmentId => {
                 // 尝试多种类型匹配
                 return s.assignmentId == assignmentId; // 使用 == 而不是 === 进行类型转换比较
             });
         });
-        
-        console.log('✅ 匹配的提交记录:', courseSubmissions);
-        console.log('📊 作业总数:', assignments.length);
-        console.log('📊 提交数:', courseSubmissions.length);
-        
+
         // 计算进度：已提交作业数 / 总作业数
         const progress = Math.floor((courseSubmissions.length / assignments.length) * 100);
-        
-        console.log('📈 计算出的进度:', progress + '%');
-        
+
         return progress;
     } catch (error) {
         console.error('计算学习进度失败:', error);
@@ -590,73 +564,21 @@ async function unenrollCourse(enrollmentId, planId) {
     }
 }
 
-// 调试：查看所有选课记录
-async function debugViewEnrollments() {
-    try {
-        console.log('🔍 开始调试：查看所有选课记录');
-        
-        // 获取所有选课记录
-        const enrollments = await getAllData('enrollments');
-        console.log('📋 选课记录总数:', enrollments.length);
-        
-        if (enrollments.length === 0) {
-            console.log('📭 数据库中没有选课记录');
-            return;
-        }
-        
-        // 显示每条选课记录的详细信息
-        console.log('📊 选课记录详情:');
-        for (const enrollment of enrollments) {
-            console.log('--- 选课记录 ---');
-            console.log('ID:', enrollment.id);
-            console.log('学生ID:', enrollment.studentId);
-            console.log('开课计划ID:', enrollment.planId);
-            console.log('选课日期:', enrollment.enrollDate);
-            console.log('状态:', enrollment.status);
-            
-            // 获取学生信息
-            const student = await getDataById('users', enrollment.studentId);
-            if (student) {
-                console.log('学生姓名:', student.name);
-            }
-            
-            // 获取开课计划信息
-            const plan = await getDataById('plans', enrollment.planId);
-            if (plan) {
-                const course = await getDataById('courses', plan.courseId);
-                if (course) {
-                    console.log('课程名称:', course.name);
-                }
-                console.log('教室:', plan.classroom);
-                console.log('时间:', plan.schedule);
-            }
-            console.log('----------------');
-        }
-        
-    } catch (error) {
-        console.error('❌ 调试查看选课记录失败:', error);
-    }
-}
-
 // 打开课程详情模态框
 let currentCourseId = null;
 
 async function openCourseDetailModal(planId) {
-    console.log('🚀 打开课程详情模态框，planId:', planId);
-    
     currentCourseId = planId;  // ✅ 现在存的是 planId
     const plan = await getDataById('plans', planId);
-    console.log('📋 开课计划信息:', plan);
-    
+
     if (!plan) {
         console.error('❌ 找不到开课计划，planId:', planId);
         alert('找不到课程信息');
         return;
     }
-    
+
     const course = await getDataById('courses', plan.courseId);
-    console.log('📚 课程信息:', course);
-    
+
     if (!course) {
         console.error('❌ 找不到课程信息，courseId:', plan.courseId);
         alert('找不到课程信息');
@@ -712,21 +634,16 @@ async function switchDetailTab(tab) {
 
 // 加载课件资料
 async function loadCourseMaterials(planId) {
-    console.log('🔍 开始加载课件资料，planId:', planId);
-    
     try {
         const content = document.getElementById('courseDetailContent');
-        console.log('📄 内容容器:', content);
-        
+
         if (!content) {
             console.error('❌ 找不到内容容器');
             return;
         }
-        
+
         const materials = await getDataByIndex('course_materials', 'planId', planId);  // ✅ 改为 planId
-        console.log('📚 查询到的课件资料:', materials);
-        console.log('📊 课件资料数量:', materials.length);
-        
+
         if (materials.length === 0) {
             content.innerHTML = `
                 <div class="empty-state">
@@ -830,42 +747,31 @@ function downloadMaterial(url, name) {
 
 // 加载课程作业
 async function loadCourseAssignments(planId) {
-    console.log('🔍 开始加载课程作业，planId:', planId);
-    
     try {
         const content = document.getElementById('courseDetailContent');
-        console.log('📄 内容容器:', content);
-        
+
         if (!content) {
             console.error('❌ 找不到内容容器');
             return;
         }
-        
+
         // 获取当前课程的所有作业（兼容courseId和planId）
-        console.log('🔍 开始查询作业，planId:', planId);
         const allAssignments = await getAllData('assignments');
-        console.log('📊 数据库中的所有作业:', allAssignments);
-        
+
         // 获取当前开课计划信息，用于匹配课程ID
         const plan = await getDataById('plans', planId);
-        console.log('📋 当前开课计划信息:', plan);
-        
+
         const assignments = allAssignments.filter(a => {
             // 如果作业有planId，直接匹配planId
             if (a.planId === planId) return true;
-            
+
             // 如果作业有courseId，需要匹配当前开课计划的courseId
             if (a.courseId && plan && a.courseId === plan.courseId) return true;
-            
+
             return false;
         });
-        
-        console.log('📋 过滤后的作业:', assignments);
-        console.log('📝 查询到的作业:', assignments);
-        console.log('📊 作业数量:', assignments.length);
-        
+
         if (assignments.length === 0) {
-            console.log('⚠️ 没有找到作业，显示空状态');
             content.innerHTML = `
                 <div class="empty-state">
                     <p>✏️ 暂无课程作业</p>
@@ -876,11 +782,9 @@ async function loadCourseAssignments(planId) {
         
         const assignmentsHtml = [];
         for (const assignment of assignments) {
-            console.log('📋 处理作业:', assignment);
-            
             // 检查是否已提交（处理ID类型匹配问题）
             const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignment.id);
-            
+
             // 如果没有找到提交记录，尝试用不同类型的ID查询
             let allSubmissions = submissions;
             if (submissions.length === 0) {
@@ -937,8 +841,6 @@ async function loadCourseAssignments(planId) {
                 ${assignmentsHtml.join('')}
             </div>
         `;
-        
-        console.log('✅ 作业加载完成');
     } catch (error) {
         console.error('❌ 加载作业失败:', error);
         const content = document.getElementById('courseDetailContent');
@@ -954,25 +856,20 @@ async function loadCourseAssignments(planId) {
 
 // ✅ 一键提交作业（未逾期才能提交）
 async function submitAssignment(assignmentId) {
-    console.log('🚀 开始提交作业，assignmentId:', assignmentId);
-    
     try {
         // 获取作业信息
         const assignment = await getDataById('assignments', assignmentId);
-        console.log('📝 作业信息:', assignment);
-        
+
         // 检查作业是否存在
         if (!assignment) {
             console.error('❌ 作业不存在，assignmentId:', assignmentId);
             alert('❌ 作业不存在，无法提交！');
             return;
         }
-        
+
         // 检查是否逾期（如果作业没有设置截止时间，默认可以提交）
         let isOverdue = false;
         if (assignment.deadline) {
-            console.log('📅 作业截止时间:', assignment.deadline);
-            
             // 修复deadline格式，确保是完整的ISO格式
             let deadlineStr = assignment.deadline;
             if (!deadlineStr.includes(':')) {
@@ -981,31 +878,23 @@ async function submitAssignment(assignmentId) {
             if (!deadlineStr.endsWith('Z') && deadlineStr.indexOf('+') === -1) {
                 deadlineStr += 'Z'; // 添加时区
             }
-            
+
             const deadlineDate = new Date(deadlineStr);
             const currentDate = new Date();
-            
-            console.log('📅 解析后的截止时间:', deadlineDate);
-            console.log('⏰ 当前时间:', currentDate);
-            
+
             isOverdue = deadlineDate < currentDate;
-            console.log('⏰ 是否逾期:', isOverdue);
-            
+
             if (isOverdue) {
                 alert('❌ 作业已逾期，无法提交！');
                 return;
             }
-        } else {
-            console.log('⚠️ 作业未设置截止时间，允许提交');
         }
-        
+
         // 检查是否已提交
         const submissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignmentId);
-        console.log('📋 现有提交记录:', submissions);
-        
+
         const mySubmission = submissions.find(s => s.studentId === currentStudent.id);
-        console.log('👤 我的提交记录:', mySubmission);
-        
+
         if (mySubmission) {
             alert('⚠️ 您已提交过该作业！');
             return;
@@ -1024,21 +913,11 @@ async function submitAssignment(assignmentId) {
             score: null,
             feedback: null
         };
-        
-        console.log('💾 要提交的数据:', submission);
-        
+
         await addData('assignment_submissions', submission);
-        console.log('✅ 作业提交成功！数据库写入完成');
-        
-        // 验证提交是否成功
-        const updatedSubmissions = await getDataByIndex('assignment_submissions', 'assignmentId', assignmentId);
-        console.log('🔍 提交后验证 - 所有提交记录:', updatedSubmissions);
-        
-        const newSubmission = updatedSubmissions.find(s => s.studentId === currentStudent.id);
-        console.log('🔍 提交后验证 - 我的新提交记录:', newSubmission);
-        
+
         alert('✅ 作业提交成功！');
-        
+
         // 强制刷新作业列表（清除缓存）
         setTimeout(async () => {
             await loadCourseAssignments(currentCourseId);
@@ -1147,20 +1026,17 @@ async function loadSemesterGrades() {
     for (const score of scores) {
         // ✅ 通过 planId 获取课程信息
         if (!score.planId) {
-            console.warn('⚠️ 警告 - planId 缺失，跳过成绩:', score.id);
             continue;
         }
         const plan = await getDataById('plans', score.planId);
-        
+
         if (!plan) {
-            console.warn('⚠️ 警告 - plan不存在，跳过成绩:', score.id);
             continue;
         }
-        
+
         const course = await getDataById('courses', plan.courseId);
-        
+
         if (!course) {
-            console.warn('⚠️ 警告 - course不存在，跳过成绩:', score.id);
             continue;
         }
         

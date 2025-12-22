@@ -99,14 +99,10 @@ function initCourseSelects() {
 // 创建作业
 async function createHomework() {
     try {
-        console.log('📝 开始创建作业...');
-        
         const title = document.getElementById('hwTitle').value;
         const courseId = document.getElementById('hwCourse').value;
         const description = document.getElementById('hwDescription').value;
         const deadline = document.getElementById('hwDeadline').value;
-        
-        console.log('📋 收集到的作业数据:', { title, courseId, description, deadline });
         
         const courseName = courses.find(c => c.id == courseId)?.name || '';
         
@@ -122,14 +118,10 @@ async function createHomework() {
             graded: 0
         };
         
-        console.log('💾 准备保存的作业数据:', homework);
-        
         homeworkAssignments.push(homework);
         
         // 保存到IndexedDB
-        console.log('🔄 调用数据库保存作业...');
         await window.gradesManager.saveHomeworkAssignment(homework);
-        console.log('✅ 作业保存完成');
         
         // 重置表单
         document.getElementById('homeworkForm').reset();
@@ -137,8 +129,6 @@ async function createHomework() {
         
         // 模拟添加学生提交记录（实际应由学生端提交）
         addMockSubmission(homework.id, 'homework');
-        
-        console.log('🎉 作业创建流程完成');
     } catch (error) {
         console.error('❌ 创建作业失败:', error);
     }
@@ -784,23 +774,14 @@ async function submitGrade() {
 
 // 查看提交情况
 function viewSubmissions(assignmentId, type) {
-    console.log('🔍 查看提交情况，assignmentId:', assignmentId, 'type:', type);
-    console.log('📋 所有提交记录:', submissions);
-    
     const assignmentSubmissions = submissions.filter(s => {
-        console.log('🔍 检查提交记录:', s, 'assignmentId:', s.assignmentId, 'type:', s.assignmentType, '目标ID:', assignmentId, '目标type:', type);
         
         // 使用类型转换比较解决ID匹配问题
         const idMatch = s.assignmentId == assignmentId;
         // 兼容历史记录：如果assignmentType不存在，默认认为是homework
         const typeMatch = s.assignmentType === type || (!s.assignmentType && type === 'homework');
         
-        console.log('ID匹配:', idMatch, '类型匹配:', typeMatch, 's.assignmentType:', s.assignmentType);
-        
         return idMatch && typeMatch;
-    });
-    
-    console.log('✅ 匹配的提交记录:', assignmentSubmissions);
     
     let message = `提交情况 (共${assignmentSubmissions.length}人):\n\n`;
     assignmentSubmissions.forEach(sub => {

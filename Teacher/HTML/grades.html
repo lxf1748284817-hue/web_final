@@ -353,12 +353,11 @@
                 // 调用 grades.js 的初始化函数
                 if (window.initGradesPage) {
                     await window.initGradesPage();
-                    console.log('✅ 成绩录入页面初始化完成');
                 } else {
                     console.error('initGradesPage 函数未定义');
                 }
             } catch (error) {
-                console.error('❌ 成绩页面初始化失败:', error);
+                console.error('成绩页面初始化失败:', error);
             }
         });
     </script>

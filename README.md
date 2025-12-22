@@ -1,48 +1,31 @@
-/project/
-|
-├── teacher/                # 教师模块目录
+# TMS 培训管理系统
 
-│   ├── dashboard.html      # 教师主面板
+## 项目结构
 
-│   ├── courses.html        # 课程管理
+```
+WEB_FINAL-PUBLIC-LDM/
+├── public/          # 公共页面（登录、注册、角色选择）
+├── admin/           # 管理员模块
+├── student/         # 学生模块
+├── Teacher/         # 教师模块
+├── TMS_System_Admin/ # 系统管理员模块
+├── shared/          # 共享资源（认证服务等）
+├── config/          # 配置文件（API配置）
+├── utils/           # 工具函数
+└── index.html       # 入口页面
+```
 
-│   ├── course-content.html # 课程资料编排
+## 用户角色
 
-│   ├── exams.html          # 考试作业管理
+| 角色 | 目录 | 权限 |
+|------|------|------|
+| 管理员 | admin/ | 培训管理、课程管理、资源管理 |
+| 教师 | Teacher/ | 课程教学、学生管理、成绩录入 |
+| 学生 | student/ | 课程学习、作业提交、成绩查询 |
+| 系统管理员 | TMS_System_Admin/ | 用户管理、角色分配、系统配置 |
 
-│   └── grades.html         # 成绩录入
+## 快速启动
 
-│
-
-├── css/
-
-│   ├── dashboard.css        
-
-│   ├── courses.css         
-
-│   ├── course-content.css         
-
-│   ├── exams.css       
-
-│   ├── grades.css        
-
-│   └── responsive.css    
-
-│
-
-├── js/
-
-│   ├── data.js             # 结合教师端数据需求，更新数据管理文件
-
-│   ├── dashboard.js        # 主面板功能
-
-│   ├── courses.js          # 课程管理功能
-
-│   ├── exams.js            # 考试管理功能
-
-│   ├── course-content.js   # 考试资料管理功能
-
-│   └── grades.js           # 成绩管理功能
-
-│
-└── .vscode
+1. 双击 `start-server.bat` 启动本地服务器
+2. 访问 `http://localhost:8080`
+3. 在登录页选择角色并登录

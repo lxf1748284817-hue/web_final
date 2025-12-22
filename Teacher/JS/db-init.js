@@ -5,7 +5,6 @@
 
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('=== 教师端数据库初始化 ===');
     
     // 默认标记为初始化完成，避免死等
     window.dbInitialized = true;
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 确保DatabaseManager已加载并初始化
         if (window.dbManager) {
             await window.dbManager.init();
-            console.log('✅ 统一数据库初始化成功');
             
             // 兼容旧的接口，确保现有代码能正常工作
             window.courseManager = {
@@ -65,9 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 getHomeworkAssignments: async () => {
                     try {
-                        console.log('📚 获取作业列表...');
                         const assignments = await window.dbManager.getAll('assignments');
-                        console.log('📋 作业列表:', assignments);
                         return assignments;
                     } catch (error) {
                         console.error('❌ 获取作业列表失败:', error);
@@ -88,8 +84,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 saveHomeworkAssignment: async (assignment) => {
                     try {
-                        console.log('💾 保存作业到数据库:', assignment);
-                        
                         // 生成唯一ID（如果不存在）
                         if (!assignment.id) {
                             assignment.id = `assign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -103,10 +97,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // 保存到数据库
                         await window.dbManager.add('assignments', assignment);
                         
-                        // 验证保存成功
-                        const savedAssignments = await window.dbManager.getAll('assignments');
-                        console.log('✅ 作业保存成功，当前数据库作业总数:', savedAssignments.length);
-                        
                         return true;
                     } catch (error) {
                         console.error('❌ 保存作业失败:', error);
@@ -119,8 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 deleteExamAssignment: () => true,
                 deleteSubmissionsByAssignment: () => true
             };
-            
-            console.log('✅ 兼容接口设置完成');
         } else {
             console.error('❌ DatabaseManager未找到，请确保已正确引入');
             window.dbInitError = 'DatabaseManager未找到';

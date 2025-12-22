@@ -235,15 +235,12 @@
                     return;
                 }
                 
-                console.log('✅ 考试管理页面初始化完成');
-                
                 // 调用考试页面初始化
                 if (typeof window.initExamsPage === 'function') {
                     await window.initExamsPage();
-                    console.log('✅ 考试页面初始化完成');
                 }
             } catch (error) {
-                console.error('❌ 系统初始化失败:', error);
+                console.error('系统初始化失败:', error);
             }
         });
     </script>

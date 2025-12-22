@@ -5,7 +5,6 @@
 
 // 导出初始化函数
 window.initGradesPage = async function() {
-    console.log('=== 成绩页面开始加载 ===');
     
     // 初始化统一数据库
     if (window.dbManager) {
@@ -47,7 +46,7 @@ window.initGradesPage = async function() {
         return;
     }
 
-    console.log('gradesManager 已就绪，开始初始化...');
+
 
     // 初始化
     await init();
@@ -233,7 +232,6 @@ window.initGradesPage = async function() {
     
     // 更新课程信息（基于课程对象）
     async function updateCourseInfo(course) {
-        console.log('更新课程信息:', course.name, course.id);
         
         // 获取实际的作业和考试数据
         const homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
@@ -247,8 +245,6 @@ window.initGradesPage = async function() {
         // 获取当前课程的学生数据来确保人数正确
         const currentStudentsData = await window.gradesManager.getCourseGrades(course.id);
         const studentCount = currentStudentsData.length;
-        
-        console.log('学生人数:', studentCount, '当前studentsData长度:', studentsData.length);
         
         const courseInfo = document.querySelector('.course-info');
         if (courseInfo) {
@@ -479,12 +475,10 @@ window.initGradesPage = async function() {
         try {
             // 首先尝试从IndexedDB加载已保存的数据
             const savedData = await window.gradesManager.getCourseGrades(course.id);
-            console.log('从IndexedDB加载的数据:', savedData); // 调试：查看实际加载的数据
             
             if (savedData && savedData.length > 0) {
                 // 直接使用保存的数据（已移除编码，无需解码）
                 studentsData = savedData;
-                console.log('从IndexedDB加载的数据:', studentsData); // 调试：查看加载的数据
             } else {
                 // 如果没有保存的数据，生成模拟数据
                 await generateMockData(course, studentCount);
@@ -711,12 +705,7 @@ window.initGradesPage = async function() {
         }
         
         // 保存数据到IndexedDB（直接使用中文，无需编码）
-        console.log('=== 开始保存成绩到数据库 ===');
-        console.log('当前课程:', currentCourse);
-        console.log('要保存的数据:', studentsData);
-        
-        const saveResult = await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
-        console.log('保存结果:', saveResult);
+        await window.gradesManager.saveCourseGrades(currentCourse, studentsData);
         
         // 结束编辑
         endEditRow(row);
@@ -1211,8 +1200,6 @@ window.initGradesPage = async function() {
                     }
                 }
                 
-                console.log('CSV解析后的数据:', data); // 调试：查看解析后的数据
-                
                 // 显示预览和错误信息
                 showPreview(data, errors);
                 
@@ -1571,8 +1558,6 @@ window.initGradesPage = async function() {
             
             // 直接使用数据，无需编码
             studentsData.push(...studentsWithGrades);
-            
-            console.log('保存到IndexedDB的数据:', studentsData); // 调试：查看保存的数据
             
             // 保存数据到IndexedDB
             await window.gradesManager.saveCourseGrades(currentCourse, studentsData);

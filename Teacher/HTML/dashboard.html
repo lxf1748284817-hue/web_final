@@ -108,7 +108,6 @@
     <script>
         // 初始化系统
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('[DEBUG] dashboard.html DOMContentLoaded entered');
             try {
                 // 先初始化数据库
                 await dbManager.init();
@@ -131,27 +130,23 @@
                 bindLogoutEvent();
                 
                 // 加载仪表板数据（等脚本加载完再调用）
-                console.log('[DEBUG] 开始加载仪表板数据');
                 if (typeof loadDashboardData === 'function') {
                     await loadDashboardData();
                 } else {
-                    console.error('❌ loadDashboardData 函数未定义，请检查 dashboard.js 是否加载成功');
+                    console.error('loadDashboardData 函数未定义，请检查 dashboard.js 是否加载成功');
                 }
 
             } catch (error) {
-                console.error('❌ 教师端初始化失败:', error);
+                console.error('教师端初始化失败:', error);
                 alert('系统初始化失败，请刷新页面重试');
             }
         });
 
         // 显示教师信息
         async function displayTeacherInfo(session) {
-            console.log('👤 显示教师信息 - session:', session);
-            
             // 从数据库重新获取完整用户信息
             try {
                 const fullUser = await window.dbManager.get('users', session.id);
-                console.log('🗄 数据库中的完整用户信息:', fullUser);
                 
                 // 更新侧边栏用户信息
                 const userName = document.querySelector('.user-info h4');
@@ -167,7 +162,7 @@
                     userDept.textContent = fullUser.department;
                 }
             } catch (error) {
-                console.error('❌ 获取完整用户信息失败:', error);
+                console.error('获取完整用户信息失败:', error);
                 // 使用会话信息作为后备
                 const userName = document.querySelector('.user-info h4');
                 const userDept = document.querySelector('.user-info p');

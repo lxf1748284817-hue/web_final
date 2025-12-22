@@ -5,8 +5,6 @@ const pageSize = 10;
 
 // 等待初始化
 async function initSystemAdmin() {
-    console.log('🚀 初始化系统管理端...');
-
     // 获取当前用户
     try {
         const session = await authService.checkSession();
@@ -31,8 +29,6 @@ async function initSystemAdmin() {
         bindBackupButtons();
         bindModalEvents();
     }, 200);
-
-    console.log('✅ 系统管理端初始化完成');
 }
 
 // 更新用户信息显示

@@ -47,7 +47,6 @@ function initializeDOMElements() {
 // 主初始化函数
 async function initCourseContent() {
     try {
-        console.log('🚀 开始初始化课程内容模块...');
         
         // 初始化数据
         materials = JSON.parse(localStorage.getItem('teacherMaterials')) || [];
@@ -61,8 +60,6 @@ async function initCourseContent() {
         
         // 初始化页面
         await initPage();
-        
-        console.log('✅ 课程内容模块初始化完成');
     } catch (error) {
         console.error('❌ 课程内容初始化失败:', error);
         showNotification('页面初始化失败，请刷新页面重试', 'error');
@@ -387,10 +384,7 @@ function handleFileSelect(e) {
 }
 
 function handleFiles(files) {
-    console.log('handleFiles 被调用，文件数量:', files.length);
-    
     if (!files.length) {
-        console.log('没有文件');
         return;
     }
     

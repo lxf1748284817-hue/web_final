@@ -180,21 +180,11 @@ function logout() {
  */
 async function loadAllData() {
     try {
-        console.log('🔍 loadAllData 开始加载所有数据...');
-        
         currentClasses = await window.dbManager.getAll('classes') || [];
         currentCourses = await window.dbManager.getAll('courses') || [];
         currentPlans = await window.dbManager.getAll('plans') || [];
         currentUsers = await window.dbManager.getAll('users') || [];
         currentScores = await window.dbManager.getAll('scores') || [];
-
-        console.log('🔍 数据加载完成:');
-        console.log('班级数量:', currentClasses.length, '班级列表:', currentClasses);
-        console.log('课程数量:', currentCourses.length);
-        console.log('计划数量:', currentPlans.length);
-        console.log('用户数量:', currentUsers.length);
-        console.log('学生数量:', currentUsers.filter(u => u.role === 'student').length);
-        console.log('教师数量:', currentUsers.filter(u => u.role === 'teacher').length);
 
         renderClasses();
         renderCourses();
@@ -203,13 +193,11 @@ async function loadAllData() {
         renderScoreAudit();
         renderStudents();
         renderTeachers();
-        
+
         // 确保筛选选项已正确更新
         updatePlanFilterOptions();
-        
-        console.log('✅ loadAllData 完成');
     } catch (e) {
-        console.error("❌ Failed to load data from IndexedDB", e);
+        console.error("Failed to load data from IndexedDB", e);
     }
 }
 
@@ -219,16 +207,10 @@ async function loadAllData() {
 
 function renderClasses(data = null) {
     const classesToRender = data || currentClasses;
-    console.log('🔍 renderClasses 调试 - 传入数据:', data, 'currentClasses:', currentClasses);
-    
     const tbody = document.querySelector('#class-table tbody');
-    if (!tbody) {
-        console.log('❌ renderClasses 调试 - 未找到班级表格 tbody');
-        return;
-    }
+    if (!tbody) return;
 
     let displayData = [...classesToRender];
-    console.log('🔍 renderClasses 调试 - displayData:', displayData);
 
     try {
         // 处理排序
@@ -263,10 +245,8 @@ function renderClasses(data = null) {
     `}).join('');
     
     tbody.innerHTML = html;
-    console.log('✅ renderClasses 调试 - HTML设置完成，行数:', displayData.length);
-        
     } catch (error) {
-        console.error('❌ renderClasses 调试 - 渲染失败:', error);
+        console.error('renderClasses 渲染失败:', error);
     }
 }
 
@@ -298,21 +278,18 @@ async function saveClass() {
     const id = document.getElementById('classId').value;
     const name = form.elements['name'].value;
 
-    console.log('🔍 saveClass 调用 - id:', id, 'name:', name);
-
     if (!name) return alert('请输入班级名称');
 
     // 检查班级名称是否重复 - 直接查数据库
     try {
         const allClasses = await window.dbManager.getAll('classes') || [];
         const existingClass = allClasses.find(c => c.name.trim() === name.trim());
-        
+
         if (existingClass && existingClass.id !== id) {
-            console.log('❌ 班级名称重复:', name, 'existingId:', existingClass.id, 'currentId:', id);
             return alert('班级名称已存在，请使用其他名称');
         }
     } catch (error) {
-        console.error('❌ 检查班级名称重复失败:', error);
+        console.error('检查班级名称重复失败:', error);
         return alert('检查班级名称失败，请重试');
     }
 
@@ -321,45 +298,35 @@ async function saveClass() {
         name: name
     };
 
-    console.log('🔍 saveClass - cls对象:', cls);
-
     try {
         if (id) {
-            // 编辑模式：更新现有班级
-            console.log('🔍 saveClass - 执行更新操作');
             await window.dbManager.update('classes', cls);
         } else {
-            // 新增模式：添加新班级
-            console.log('🔍 saveClass - 执行新增操作');
             await window.dbManager.add('classes', cls);
         }
-        console.log('✅ 保存班级成功');
         classModal.hide();
         loadAllData();
     } catch (error) {
-        console.error('❌ 保存班级失败:', error);
+        console.error('保存班级失败:', error);
         alert('保存失败，请查看控制台');
     }
 }
 
 async function deleteClass(id) {
-    console.log('🗑️ deleteClass 调用，id:', id);
     if (confirm('确定删除该班级吗？')) {
         try {
             // 检查数据库中是否存在该班级
             const classToDelete = await window.dbManager.get('classes', id);
             if (!classToDelete) {
-                console.log('❌ 班级不存在，id:', id);
                 alert('班级不存在或已被删除');
                 loadAllData();
                 return;
             }
-            
+
             await window.dbManager.delete('classes', id);
-            console.log('✅ 数据库删除成功，id:', id);
             loadAllData();
         } catch (error) {
-            console.error('❌ 删除班级失败:', error);
+            console.error('删除班级失败:', error);
             alert('删除失败，请查看控制台');
         }
     }
@@ -409,7 +376,6 @@ function renderStudents() {
     const tbody = document.querySelector('#student-table tbody');
     if (!tbody) return;
     const students = (window.currentUsers || currentUsers || []).filter(u => u.role === 'student');
-    console.log('🔍 renderStudents - 学生数据:', students.length, '个');
     
     // 简单的搜索过滤
     const searchInput = document.getElementById('studentSearch');
@@ -708,7 +674,6 @@ function renderTeachers() {
     const tbody = document.querySelector('#teacher-table tbody');
     if (!tbody) return;
     const teachers = (window.currentUsers || currentUsers || []).filter(u => u.role === 'teacher');
-    console.log('🔍 renderTeachers - 教师数据:', teachers.length, '个');
     
     tbody.innerHTML = teachers.map(t => `
         <tr>
@@ -776,8 +741,6 @@ async function deleteUser(id) {
 
 function renderCourses(data = null) {
     const coursesToRender = data || currentCourses;
-    console.log('🔍 renderCourses 调试 - 传入数据:', data, 'currentCourses:', currentCourses);
-    
     const tbody = document.querySelector('#course-table tbody');
     if (!tbody) return;
     tbody.innerHTML = coursesToRender.map(c => `
@@ -833,13 +796,12 @@ async function saveCourse() {
     try {
         const allCourses = await window.dbManager.getAll('courses') || [];
         const existingCourse = allCourses.find(c => c.code.trim() === code.trim());
-        
+
         if (existingCourse && existingCourse.id !== id) {
-            console.log('❌ 课程代码重复:', code, 'existingId:', existingCourse.id, 'currentId:', id);
             return alert('课程代码已存在，请使用其他代码');
         }
     } catch (error) {
-        console.error('❌ 检查课程代码重复失败:', error);
+        console.error('检查课程代码重复失败:', error);
         return alert('检查课程代码失败，请重试');
     }
 
@@ -853,38 +815,32 @@ async function saveCourse() {
 
     try {
         if (id) {
-            console.log('🔍 saveCourse - 执行更新操作');
             await window.dbManager.update('courses', course);
         } else {
-            console.log('🔍 saveCourse - 执行新增操作');
             await window.dbManager.add('courses', course);
         }
-        console.log('✅ 保存课程成功');
         courseModal.hide();
         loadAllData();
     } catch (error) {
-        console.error('❌ 保存课程失败:', error);
+        console.error('保存课程失败:', error);
         alert('保存失败，请查看控制台');
     }
 }
 
 async function deleteCourse(id) {
-    console.log('🗑️ deleteCourse 调用，id:', id);
     if (confirm('确定删除该课程吗？')) {
         try {
             const courseToDelete = await window.dbManager.get('courses', id);
             if (!courseToDelete) {
-                console.log('❌ 课程不存在，id:', id);
                 alert('课程不存在或已被删除');
                 loadAllData();
                 return;
             }
-            
+
             await window.dbManager.delete('courses', id);
-            console.log('✅ 数据库删除成功，id:', id);
             loadAllData();
         } catch (error) {
-            console.error('❌ 删除课程失败:', error);
+            console.error('删除课程失败:', error);
             alert('删除失败，请查看控制台');
         }
     }
@@ -922,45 +878,22 @@ function renderPlans(data = null) {
     planState.filters.teacherId = teacherSelect ? teacherSelect.value : '';
 
     // 2. 过滤数据
-    console.log('🔍 renderPlans 详细调试:');
-    console.log('传入的 plans 参数:', data);
-    console.log('window.currentPlans:', window.currentPlans);
-    console.log('使用的 plans 数据:', plans);
-    console.log('plans 长度:', plans.length);
-    
-    if (plans.length > 0) {
-        console.log('第一条计划数据:', plans[0]);
-        console.log('getCourseName 测试结果:', getCourseName(plans[0].courseId));
-        console.log('getUserName 测试结果:', getUserName(plans[0].teacherId));
-    }
-
     let filtered = plans.filter(p => {
-        console.log('🔍 筛选单个计划:', p);
-        
         const courseName = getCourseName(p.courseId).toLowerCase();
         const teacherName = getUserName(p.teacherId).toLowerCase();
         const classroom = p.classroom.toLowerCase();
         const search = planState.filters.search;
 
-        console.log('课程名:', courseName, '教师名:', teacherName, '教室:', classroom, '学期:', p.semester);
-
-        const matchSearch = !search || 
-            courseName.includes(search) || 
-            teacherName.includes(search) || 
+        const matchSearch = !search ||
+            courseName.includes(search) ||
+            teacherName.includes(search) ||
             classroom.includes(search) ||
             p.semester.toLowerCase().includes(search);
         const matchSemester = !planState.filters.semester || p.semester === planState.filters.semester;
         const matchTeacher = !planState.filters.teacherId || p.teacherId === planState.filters.teacherId;
 
-        console.log('匹配结果 - 搜索:', matchSearch, '学期:', matchSemester, '教师:', matchTeacher);
-
         return matchSearch && matchSemester && matchTeacher;
     });
-    
-    console.log('🔍 筛选结果 - filtered 长度:', filtered.length);
-    if (filtered.length > 0) {
-        console.log('第一条筛选结果:', filtered[0]);
-    }
 
     // 3. 排序 (复用全局 sortState)
     if (sortState.tableId === 'plan-table' && sortState.field) {
@@ -1045,16 +978,10 @@ function renderPlans(data = null) {
 }
 
 function handlePlanSearch() {
-    console.log('🔍 执行开课计划筛选');
-    
     const searchInput = document.getElementById('planSearchInput');
     const semesterSelect = document.getElementById('planFilterSemester');
     const teacherSelect = document.getElementById('planFilterTeacher');
-    
-    console.log('🔍 筛选条件 - 搜索:', searchInput ? searchInput.value : 'N/A');
-    console.log('🔍 筛选条件 - 学期:', semesterSelect ? semesterSelect.value : 'N/A');
-    console.log('🔍 筛选条件 - 教师:', teacherSelect ? teacherSelect.value : 'N/A');
-    
+
     if (searchInput && searchInput.value.trim() === '') {
         // 空搜索提醒：临时修改 placeholder 并闪烁边框
         const originalPlaceholder = searchInput.placeholder;
@@ -1069,60 +996,46 @@ function handlePlanSearch() {
     
     // 确保筛选选项已更新
     updatePlanFilterOptions();
-    
+
     renderPlans();
-    
-    console.log('🔍 筛选完成');
 }
 
 function updatePlanFilterOptions() {
-    console.log('🔍 更新筛选选项 - 开始执行');
-    
     const semesterSelect = document.getElementById('planFilterSemester');
     const teacherSelect = document.getElementById('planFilterTeacher');
     const scheduleSelect = document.getElementById('scheduleSemesterSelect');
     const teacherScheduleSelect = document.getElementById('teacherScheduleSemester');
-    
+
     // 提取所有学期
     const plans = window.currentPlans || currentPlans || [];
     const semesters = [...new Set(plans.map(p => p.semester))].sort().reverse();
-    console.log('🔍 可用学期:', semesters);
 
     // 1. 更新筛选区的学期下拉框
     if (semesterSelect) {
         const currentSemester = semesterSelect.value;
-        console.log('🔍 更新学期下拉框 - 当前值:', currentSemester);
-        
-        semesterSelect.innerHTML = '<option value="">所有学期</option>' + 
+        semesterSelect.innerHTML = '<option value="">所有学期</option>' +
             semesters.map(s => `<option value="${s}">${s}</option>`).join('');
-        
+
         // 如果当前值有效则保持，否则重置为空
         if (currentSemester && semesters.includes(currentSemester)) {
             semesterSelect.value = currentSemester;
         } else {
             semesterSelect.value = '';
         }
-        console.log('🔍 学期下拉框更新完成 - 新值:', semesterSelect.value);
     }
 
     // 2. 更新课表预览区的学期下拉框
     const updateScheduleOptions = (select, selectName) => {
-        if (!select) {
-            console.log('🔍 未找到下拉框:', selectName);
-            return;
-        }
+        if (!select) return;
         const currentVal = select.value;
-        console.log(`🔍 更新${selectName} - 当前值:`, currentVal);
-        
         select.innerHTML = '<option value="">所有学期</option>' + semesters.map(s => `<option value="${s}">${s}</option>`).join('');
-        
+
         // 如果当前值有效则保持，否则重置为空
         if (currentVal && semesters.includes(currentVal)) {
             select.value = currentVal;
         } else {
             select.value = '';
         }
-        console.log(`🔍 ${selectName}更新完成 - 新值:`, select.value);
     };
 
     updateScheduleOptions(scheduleSelect, '课表预览学期下拉框');
@@ -1133,18 +1046,16 @@ function updatePlanFilterOptions() {
         const currentTeacher = teacherSelect.value;
         const teachers = window.currentUsers || currentUsers || [];
         const teacherList = teachers.filter(u => u.role === 'teacher');
-        console.log('🔍 可用教师:', teacherList.map(t => ({id: t.id, name: t.name})));
-        
-        teacherSelect.innerHTML = '<option value="">所有教师</option>' + 
+
+        teacherSelect.innerHTML = '<option value="">所有教师</option>' +
             teacherList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        
+
         // 如果当前值有效则保持，否则重置为空
         if (currentTeacher && teacherList.some(t => t.id === currentTeacher)) {
             teacherSelect.value = currentTeacher;
         } else {
             teacherSelect.value = '';
         }
-        console.log('🔍 教师下拉框更新完成 - 新值:', teacherSelect.value);
     }
 
     // 4. 更新课表预览区的教师下拉框
@@ -1153,16 +1064,14 @@ function updatePlanFilterOptions() {
         const currentVal = scheduleTeacherSelect.value;
         const teachers = window.currentUsers || currentUsers || [];
         const teacherList = teachers.filter(u => u.role === 'teacher');
-        
-        scheduleTeacherSelect.innerHTML = '<option value="">请选择...</option>' + 
+
+        scheduleTeacherSelect.innerHTML = '<option value="">请选择...</option>' +
             teacherList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        
+
         if (currentVal && teacherList.some(t => t.id === currentVal)) {
             scheduleTeacherSelect.value = currentVal;
         }
     }
-
-    console.log('🔍 筛选选项更新完成');
 }
 
 function renderPagination(elementId, totalPages, currentPage, onPageChange) {
@@ -1680,10 +1589,7 @@ function getCourseName(id) {
 function getUserName(id, field = 'name') {
     const users = window.currentUsers || currentUsers || [];
     const user = users.find(u => u.id === id);
-    if (!user) {
-        console.log('🔍 未找到用户ID:', id, '可用用户IDs:', users.map(u => u.id));
-        return '未知用户';
-    }
+    if (!user) return '未知用户';
     return user[field];
 }
 
@@ -1738,8 +1644,6 @@ window.cancelPhoneEdit = cancelPhoneEdit;
 window.unbindPhone = unbindPhone;
 window.triggerAvatarUpload = triggerAvatarUpload;
 window.handleAvatarChange = handleAvatarChange;
-
-console.log('Admin script loaded successfully.');
 
 // 事件绑定
 function bindEvents() {

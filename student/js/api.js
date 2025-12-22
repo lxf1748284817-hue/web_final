@@ -164,8 +164,6 @@ async function exportScoresToXLS(planId) {
         link.href = URL.createObjectURL(blob);
         link.download = `${course.code}_${course.name}_成绩表_${plan.semester}.csv`;
         link.click();
-
-        console.log('成绩导出成功');
     } catch (error) {
         console.error('导出成绩失败:', error);
         throw error;

@@ -123,12 +123,10 @@ window.createCourseCard = async function(course) {
 };
 
 window.loadDashboardData = async function() {
-    console.log('[DEBUG] loadDashboardData started');
     window.showLoadingState();
     try {
         // 直接从数据库获取课程数据
         const courses = await window.dbManager.getAll('courses');
-        console.log('[DEBUG] courses from database:', courses);
         
         // 更新欢迎区域的统计数据（不再需要作业和考试数据参数）
         await window.updateWelcomeStats(courses);
@@ -136,7 +134,7 @@ window.loadDashboardData = async function() {
         // 更新课程概览
         window.updateCourseOverview(courses);
     } catch (error) {
-        console.error('[DEBUG] loadDashboardData error:', error);
+        console.error('加载Dashboard数据失败:', error);
         window.updateWelcomeStats([]);
         window.updateCourseOverview([]);
     }
@@ -150,49 +148,36 @@ window.updateWelcomeStats = async function(courses) {
         session = await window.authService.checkSession();
         teacherId = session?.id;
     }
-    console.log('[DEBUG] session:', session);
-    console.log('[DEBUG] teacherId:', teacherId);
 
     if (!teacherId) {
-        console.log('[DEBUG] 未获取到教师ID，显示0');
         document.getElementById('active-course-count').textContent = '0';
         document.getElementById('total-students').textContent = '0';
         document.getElementById('pending-tasks').textContent = '0';
         return;
     }
 
+
     // 1. 进行中的课程：plans.teacherId = teacherId，且关联的课程存在
     const plans = await window.dbManager.getAll('plans');
-    console.log('[DEBUG] all plans:', plans);
     const teacherPlans = plans.filter(p => p.teacherId === teacherId);
-    console.log('[DEBUG] teacherPlans:', teacherPlans);
     const planCourseIds = teacherPlans.map(p => p.courseId);
-    console.log('[DEBUG] planCourseIds:', planCourseIds);
     const teacherCourses = courses.filter(c => planCourseIds.includes(c.id));
-    console.log('[DEBUG] teacherCourses:', teacherCourses);
     const publishedCourses = teacherCourses.filter(course => course.status === 'published' || course.status === 'active');
-    console.log('[DEBUG] publishedCourses:', publishedCourses);
     const activeCourseCount = publishedCourses.length;
-    console.log('[DEBUG] activeCourseCount:', activeCourseCount);
+
 
     // 2. 学生总数：enrollments 中 planId 在 teacherPlans 里的学生去重
     const enrollments = await window.dbManager.getAll('enrollments');
-    console.log('[DEBUG] all enrollments:', enrollments);
     const teacherEnrollments = enrollments.filter(e => teacherPlans.some(p => p.id === e.planId));
-    console.log('[DEBUG] teacherEnrollments:', teacherEnrollments);
     const uniqueStudentIds = [...new Set(teacherEnrollments.map(e => e.studentId))];
     const totalStudents = uniqueStudentIds.length;
-    console.log('[DEBUG] totalStudents:', totalStudents);
+
 
     // 3. 待完成任务：未批改的作业 + 未批改的考试
     const assignments = await window.dbManager.getAll('assignments');
-    console.log('[DEBUG] all assignments:', assignments);
     const teacherAssignments = assignments.filter(a => teacherPlans.some(p => p.id === a.planId));
-    console.log('[DEBUG] teacherAssignments:', teacherAssignments);
     const homeworkList = teacherAssignments.filter(a => a.type === 'homework');
     const examList = teacherAssignments.filter(a => a.type === 'exam');
-    console.log('[DEBUG] homeworkList:', homeworkList);
-    console.log('[DEBUG] examList:', examList);
 
     const submissions = await window.dbManager.getAll('assignment_submissions');
     console.log('[DEBUG] all submissions:', submissions);
@@ -204,10 +189,9 @@ window.updateWelcomeStats = async function(courses) {
     let ungradedExamCount = 0;
     for (const exam of examList) {
         const subs = submissions.filter(s => s.assignmentId === exam.id);
-        if (subs.length > 0) ungradedExamCount++;
+        if (subs.length > 0)             ungradedExamCount++;
     }
     const pendingTasks = ungradedHomeworkCount + ungradedExamCount;
-    console.log('[DEBUG] pendingTasks:', pendingTasks);
 
     // 更新 DOM
     const activeCourseCountEl = document.getElementById('active-course-count');

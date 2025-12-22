@@ -66,7 +66,6 @@ const CourseModule = {
         if (typeof window.dbManager !== 'undefined') {
             await window.dbManager.init();
             const courses = await window.dbManager.getAll('courses');
-            console.log('📚 从数据库加载的课程:', courses);
             return courses && courses.length > 0 ? courses : this.fallbackData;
         }
             
@@ -83,7 +82,6 @@ const CourseModule = {
                 request.onerror = () => resolve(this.fallbackData);
             });
         } catch (err) {
-            console.warn("CourseModule: 数据库加载失败，切换至备用数据");
             return this.fallbackData;
         }
     },

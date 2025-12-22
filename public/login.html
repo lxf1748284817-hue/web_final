@@ -229,28 +229,20 @@
                     }
                 } else {
                     // 登录失败，显示错误信息
-                    console.log('🔍 显示登录失败信息:', result.message);
-                if (errorEl) {
-                    errorEl.textContent = result.message || '登录失败，请重试';
-                    // 确保错误信息可见
-                    errorEl.style.display = 'block';
-                    errorEl.style.color = '#e74c3c';
-                    console.log('✅ 错误信息已设置:', errorEl.textContent);
-                } else {
-                        console.error('❌ 找不到错误显示元素');
+                    if (errorEl) {
+                        errorEl.textContent = result.message || '登录失败，请重试';
+                        // 确保错误信息可见
+                        errorEl.style.display = 'block';
+                        errorEl.style.color = '#e74c3c';
                     }
                 }
             } catch (error) {
                 console.error('登录失败:', error);
-                console.log('🔍 errorEl:', errorEl);
                 if (errorEl) {
                     errorEl.textContent = error.message || '登录失败，请重试';
                     // 确保错误信息可见
                     errorEl.style.display = 'block';
                     errorEl.style.color = '#e74c3c';
-                    console.log('✅ 错误信息已设置:', errorEl.textContent);
-                } else {
-                    console.error('❌ 找不到错误显示元素');
                 }
             }
         }

@@ -59,11 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 从统一数据库加载课程数据
             courses = await window.dbManager.getAll('courses');
-            console.log('从IndexedDB加载课程数据:', courses.length, '门课程');
             
             // 如果本地没有课程数据，显示空状态，但不触发数据重置
             if (courses.length === 0) {
-                console.log('IndexedDB中无课程数据，显示空状态');
                 // 不触发数据重新初始化，避免丢失用户数据
                 // 用户可以通过点击"创建第一门课程"按钮来开始添加课程
             }
@@ -85,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
     // 监听数据更新事件（仅在其他页面修改数据时刷新）
     window.addEventListener('courseDataUpdated', function(event) {
-        console.log('检测到课程数据更新事件');
         // 只有在事件来自其他页面时才重新加载数据
         if (event.detail && event.detail.source !== 'courses') {
             window.dbManager.getAll('courses').then(updatedCourses => {
@@ -104,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 监听页面可见性变化，确保数据同步
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-            console.log('页面重新可见，刷新课程数据');
             window.dbManager.getAll('courses').then(updatedCourses => {
                 courses = updatedCourses;
                 renderCourses(courses);
@@ -115,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 监听页面关闭前保存数据
             window.addEventListener('beforeunload', function() {
-                console.log('页面即将关闭，确保数据已保存');
+                // 页面关闭前确保数据已保存
             });
             
         } catch (error) {
@@ -769,9 +765,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!currentEditCourseId) {
                 // 新课程
                 courseData.createdAt = new Date().toISOString();
-                console.log('创建新课程:', courseData);
-            } else {
-                console.log('更新课程:', courseData);
             }
             
             // 保存到IndexedDB
@@ -783,7 +776,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 重新加载课程数据
             courses = await window.dbManager.getAll('courses');
-            console.log('保存后课程数据:', courses.length, '门课程');
             
             // 重新渲染课程列表
             await renderCourses(courses);

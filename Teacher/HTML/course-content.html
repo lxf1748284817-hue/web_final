@@ -271,12 +271,8 @@
         // 初始化系统
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                console.log('🚀 开始初始化课程内容页面...');
-                
                 // 等待数据库和db-init完全初始化
-                console.log('⏳ 等待dbManager初始化...');
                 await dbManager.init();
-                console.log('✅ dbManager初始化完成');
                 
                 // 等待一小段时间确保db-init.js完成兼容接口设置
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -285,7 +281,6 @@
                 if (!window.courseManager) {
                     throw new Error('courseManager未初始化，请检查db-init.js');
                 }
-                console.log('✅ courseManager已就绪');
                 
                 // 检查登录状态
                 const session = await authService.checkSession();
@@ -295,8 +290,6 @@
                     return;
                 }
                 
-                console.log('✅ 登录验证通过');
-                
                 // 显示教师信息
                 await displayTeacherInfo(session);
                 
@@ -304,16 +297,14 @@
                 bindLogoutEvent();
                 
                 // 调用初始化函数
-                console.log('🚀 开始初始化课程内容...');
                 if (typeof window.initCourseContent === 'function') {
                     await window.initCourseContent();
-                    console.log('✅ 课程内容初始化完成');
                 } else {
                     throw new Error('initCourseContent函数未找到，请检查course-content.js加载');
                 }
                 
             } catch (error) {
-                console.error('❌ 教师端初始化失败:', error);
+                console.error('教师端初始化失败:', error);
                 alert('系统初始化失败：' + error.message + '，请刷新页面重试');
             }
         });
@@ -322,12 +313,9 @@
 
         // 显示教师信息
         async function displayTeacherInfo(session) {
-            console.log('👤 显示教师信息 - session:', session);
-            
             // 从数据库重新获取完整用户信息
             try {
                 const fullUser = await window.dbManager.get('users', session.id);
-                console.log('🗄 数据库中的完整用户信息:', fullUser);
                 
                 // 更新侧边栏用户信息
                 const userName = document.querySelector('.user-info h4');
@@ -341,7 +329,7 @@
                     userDept.textContent = fullUser.department;
                 }
             } catch (error) {
-                console.error('❌ 获取完整用户信息失败:', error);
+                console.error('获取完整用户信息失败:', error);
                 // 使用会话信息作为后备
                 const userName = document.querySelector('.user-info h4');
                 const userDept = document.querySelector('.user-info p');
