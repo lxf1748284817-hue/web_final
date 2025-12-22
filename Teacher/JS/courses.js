@@ -758,6 +758,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 semester: courseSemester,
                 description: courseDescription,
                 department: '计算机系', // 默认院系，确保与其他模块数据兼容
+                category: 'required', // 默认设为必修，确保学生端正常显示
                 status: status,
                 allowPreview: allowPreview,
                 bannerImage: bannerImage,

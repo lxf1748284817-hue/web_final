@@ -201,7 +201,7 @@ function getCategoryName(category) {
         'elective': '选修',
         'general': '通识'
     };
-    return names[category] || category;
+    return names[category] || '必修'; // 默认显示必修，避免undefined
 }
 
 // 组合筛选课程（搜索 + 学期 + 类别）
