@@ -776,7 +776,7 @@
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 // 检查登录状态
-                const session = authService.checkSession();
+                const session = await authService.checkSession();
                 if (!session || session.role !== 'admin_sys') {
                     alert('请先登录系统管理端！');
                     window.location.href = '../public/login.html?role=admin_sys';

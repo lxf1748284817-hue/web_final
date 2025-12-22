@@ -172,6 +172,9 @@ class AuthService {
             name: user.name,
             role: user.role,
             email: user.email,
+            department: user.department,
+            classId: user.classId,
+            major: user.major,
             avatar: user.avatar,
             loginTime: new Date().toISOString(),
             expiresAt: new Date(Date.now() + this.config.tokenExpiry).toISOString()
@@ -202,7 +205,7 @@ class AuthService {
     /**
      * 检查当前会话
      */
-    checkSession() {
+    async checkSession() {
         try {
             const sessionData = localStorage.getItem(this.config.sessionKey);
             if (!sessionData) {
@@ -227,7 +230,7 @@ class AuthService {
             // 更新当前用户
             if (!this.currentUser || this.currentUser.id !== session.id) {
                 if (session.id) {
-                    this._loadCurrentUser(session.id);
+                    await this._loadCurrentUser(session.id);
                 } else {
                     console.warn('⚠️ 会话数据缺少用户ID，清除会话');
                     this.logout();
@@ -446,7 +449,7 @@ class AuthService {
      * 初始化认证服务
      */
     async init() {
-        const session = this.checkSession();
+        const session = await this.checkSession();
         if (session) {
             console.log(`✅ 用户会话有效: ${session.name} (${this.getRoleDisplayName(session.role)})`);
         }

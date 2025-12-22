@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateWelcomeStats(courses, homeworkAssignments, examAssignments) {
         // 计算已发布的课程数量
-        const publishedCourses = courses.filter(course => course.status === 'published');
+        const publishedCourses = courses.filter(course => course.status === 'published' || course.status === 'active');
         
         // 计算学生总数（模拟数据，实际应该从课程数据中获取）
         const totalStudents = publishedCourses.length * 45; // 假设每门课程平均45名学生
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!courseCardsContainer) return;
         
         // 过滤出已发布的课程
-        const publishedCourses = courses.filter(course => course.status === 'published');
+        const publishedCourses = courses.filter(course => course.status === 'published' || course.status === 'active');
         
         // 清空容器
         courseCardsContainer.innerHTML = '';

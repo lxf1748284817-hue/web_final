@@ -164,7 +164,7 @@ class DataManager {
     // 获取已发布的课程
     async getPublishedCourses() {
         const courses = await this.getCourses();
-        return courses.filter(course => course.status === 'published');
+        return courses.filter(course => course.status === 'published' || course.status === 'active');
     }
 
     // 获取草稿课程

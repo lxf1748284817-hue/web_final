@@ -8,6 +8,21 @@ let currentStudent = null;
 
 // 获取当前用户信息
 function getCurrentStudent() {
+    // 优先使用统一认证服务的会话信息
+    if (window.authService && window.authService.currentUser) {
+        return {
+            id: window.authService.currentUser.id,
+            studentId: window.authService.currentUser.username,
+            name: window.authService.currentUser.name,
+            role: window.authService.currentUser.role,
+            email: window.authService.currentUser.email,
+            department: window.authService.currentUser.department || '未设置院系',
+            classId: window.authService.currentUser.classId || '',
+            major: window.authService.currentUser.major || '未设置专业'
+        };
+    }
+    
+    // 兼容旧版 localStorage
     const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
     return session || {
         id: 'stu_001',

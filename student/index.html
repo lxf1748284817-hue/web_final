@@ -326,7 +326,7 @@
                 await dbManager.init();
                 
                 // 检查登录状态
-                const session = authService.checkSession();
+                const session = await authService.checkSession();
                 if (!session || session.role !== 'student') {
                     alert('请先登录学生端！');
                     window.location.href = '../public/login.html?role=student';

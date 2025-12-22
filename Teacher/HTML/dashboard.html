@@ -101,37 +101,106 @@
         </main>
     </div>
     
-    <script type="module">
-        // 导入统一服务
-        import { dbManager } from '../../shared/DatabaseManager.js';
-        import { authService } from '../../shared/AuthService.js';
-
-        // 兼容现有代码
-        window.dbManager = dbManager;
-        window.authService = authService;
-
+    <!-- 引入统一数据库和认证服务 -->
+    <script src="../../shared/DatabaseManager.js"></script>
+    <script src="../../shared/AuthService.js"></script>
+    
+    <script>
         // 初始化系统
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                // 先初始化数据库
+                await dbManager.init();
+                
                 // 检查登录状态
-                const session = authService.checkSession();
+                const session = await authService.checkSession();
                 if (!session || session.role !== 'teacher') {
                     alert('请先登录教师端！');
                     window.location.href = '../../public/login.html?role=teacher';
                     return;
                 }
-
-                // 初始化数据库
-                await dbManager.init();
                 
                 // 加载现有脚本
+                await loadScript('../JS/data.js');
                 await loadScript('../JS/dashboard.js');
+
+                // 显示教师信息
+                await displayTeacherInfo(session);
+                
+                // 绑定退出登录事件
+                bindLogoutEvent();
 
             } catch (error) {
                 console.error('❌ 教师端初始化失败:', error);
                 alert('系统初始化失败，请刷新页面重试');
             }
         });
+
+        // 显示教师信息
+        async function displayTeacherInfo(session) {
+            console.log('👤 显示教师信息 - session:', session);
+            
+            // 从数据库重新获取完整用户信息
+            try {
+                const fullUser = await window.dbManager.get('users', session.id);
+                console.log('🗄 数据库中的完整用户信息:', fullUser);
+                
+                // 更新侧边栏用户信息
+                const userName = document.querySelector('.user-info h4');
+                const userDept = document.querySelector('.user-info p');
+                const welcomeTitle = document.querySelector('.welcome-section h2');
+                
+                if (userName) userName.textContent = fullUser?.name || session.name || '教师';
+                if (userDept) userDept.textContent = fullUser?.department || session.department || '未设置院系';
+                if (welcomeTitle) welcomeTitle.textContent = `欢迎回来，${fullUser?.name || session.name || '老师'}！`;
+                
+                // 优先使用数据库数据，确保显示正确的院系
+                if (fullUser?.department) {
+                    userDept.textContent = fullUser.department;
+                }
+            } catch (error) {
+                console.error('❌ 获取完整用户信息失败:', error);
+                // 使用会话信息作为后备
+                const userName = document.querySelector('.user-info h4');
+                const userDept = document.querySelector('.user-info p');
+                const welcomeTitle = document.querySelector('.welcome-section h2');
+                
+                if (userName) userName.textContent = session.name || '教师';
+                if (userDept) userDept.textContent = session.department || '未设置院系';
+                if (welcomeTitle) welcomeTitle.textContent = `欢迎回来，${session.name || '老师'}！`;
+            }
+        }
+
+        // 退出登录功能（参考学生端实现）
+        function bindLogoutEvent() {
+            const logoutBtn = document.querySelector('.logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                try {
+                    // 清除登录会话信息
+                    if (typeof window.authService !== 'undefined') {
+                        window.authService.logout();
+                    }
+                    
+                    // 显示退出成功提示
+                    alert('退出登录成功');
+                    
+                    // 跳转到登录页面
+                    setTimeout(() => {
+                        window.location.href = '../../public/login.html';
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('退出登录失败:', error);
+                    alert('退出登录失败，请重试');
+                }
+            }
+        }
 
         // 动态加载脚本
         function loadScript(src) {

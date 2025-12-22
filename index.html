@@ -177,7 +177,7 @@
                     console.log('✅ 认证服务初始化成功');
 
                     // 检查是否有自动登录会话
-                    const session = window.authService.checkSession();
+                    const session = await window.authService.checkSession();
                     if (session) {
                         console.log('✅ 用户会话有效:', session.name);
                         
