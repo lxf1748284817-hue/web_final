@@ -1047,14 +1047,18 @@
                         console.log('计划表格:', document.querySelector('#plan-table tbody'));
                         
                         // 加载所有数据
-                        const plans = await window.dbManager.getAll('plans');
+                        const classes = await window.dbManager.getAll('classes');
                         const courses = await window.dbManager.getAll('courses');
+                        const plans = await window.dbManager.getAll('plans');
                         const users = await window.dbManager.getAll('users');
+                        const scores = await window.dbManager.getAll('scores');
                         
                         // 设置全局变量供其他函数使用
-                        window.currentPlans = plans;
+                        window.currentClasses = classes;
                         window.currentCourses = courses;
+                        window.currentPlans = plans;
                         window.currentUsers = users;
+                        window.currentScores = scores;
                         
                         console.log('🔍 数据加载情况:');
                         console.log('用户数量:', users.length);

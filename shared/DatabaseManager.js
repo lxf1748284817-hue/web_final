@@ -314,8 +314,8 @@ class DatabaseManager {
 
         // 4. 授课计划 (2个)
         await Promise.all([
-            stores.plans.add({ id: 'plan_001', courseId: 'course_cs101', teacherId: 'teacher_002', semester: '2024-1', classroom: 'A101', schedule: '周一 1-2节', capacity: 50, enrolled: 0 }),
-            stores.plans.add({ id: 'plan_002', courseId: 'course_ma202', teacherId: 'teacher_002', semester: '2024-1', classroom: '大礼堂', schedule: '周五 7-8节', capacity: 100, enrolled: 0 })
+            stores.plans.add({ id: 'plan_001', courseId: 'course_cs101', teacherId: 'teacher_002', semester: '2024-1', classroom: 'A101', timeSlots: '周一 1-2节', maxStudents: 50, weekType: '全周' }),
+            stores.plans.add({ id: 'plan_002', courseId: 'course_ma202', teacherId: 'teacher_002', semester: '2024-1', classroom: '大礼堂', timeSlots: '周五 7-8节', maxStudents: 100, weekType: '全周' })
         ]);
 
         // 5. 成绩 (5条，覆盖不同状态)

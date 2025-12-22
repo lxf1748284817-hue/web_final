@@ -159,6 +159,8 @@ function logout() {
  */
 async function loadAllData() {
     try {
+        console.log('🔍 开始加载所有数据...');
+        
         currentClasses = await window.dbManager.getAll('classes') || [];
         currentCourses = await window.dbManager.getAll('courses') || [];
         currentPlans = await window.dbManager.getAll('plans') || [];
@@ -172,6 +174,9 @@ async function loadAllData() {
         console.log('用户数量:', currentUsers.length);
         console.log('学生数量:', currentUsers.filter(u => u.role === 'student').length);
         console.log('教师数量:', currentUsers.filter(u => u.role === 'teacher').length);
+        
+        // 详细显示开课计划数据
+        console.log('🔍 开课计划详情:', currentPlans);
 
         renderClasses();
         renderCourses();
@@ -180,6 +185,9 @@ async function loadAllData() {
         renderScoreAudit();
         renderStudents();
         renderTeachers();
+        
+        // 确保筛选选项已正确更新
+        updatePlanFilterOptions();
     } catch (e) {
         console.error("Failed to load data from IndexedDB", e);
     }
@@ -784,7 +792,11 @@ function renderPlans(data = null) {
         const classroom = p.classroom.toLowerCase();
         const search = planState.filters.search;
 
-        const matchSearch = !search || courseName.includes(search) || teacherName.includes(search) || classroom.includes(search);
+        const matchSearch = !search || 
+            courseName.includes(search) || 
+            teacherName.includes(search) || 
+            classroom.includes(search) ||
+            p.semester.toLowerCase().includes(search);
         const matchSemester = !planState.filters.semester || p.semester === planState.filters.semester;
         const matchTeacher = !planState.filters.teacherId || p.teacherId === planState.filters.teacherId;
 
@@ -862,7 +874,16 @@ function renderPlans(data = null) {
 }
 
 function handlePlanSearch() {
+    console.log('🔍 执行开课计划筛选');
+    
     const searchInput = document.getElementById('planSearchInput');
+    const semesterSelect = document.getElementById('planFilterSemester');
+    const teacherSelect = document.getElementById('planFilterTeacher');
+    
+    console.log('🔍 筛选条件 - 搜索:', searchInput ? searchInput.value : 'N/A');
+    console.log('🔍 筛选条件 - 学期:', semesterSelect ? semesterSelect.value : 'N/A');
+    console.log('🔍 筛选条件 - 教师:', teacherSelect ? teacherSelect.value : 'N/A');
+    
     if (searchInput && searchInput.value.trim() === '') {
         // 空搜索提醒：临时修改 placeholder 并闪烁边框
         const originalPlaceholder = searchInput.placeholder;
@@ -874,82 +895,103 @@ function handlePlanSearch() {
             searchInput.classList.remove('border-warning', 'shadow-sm');
         }, 1500);
     }
+    
+    // 确保筛选选项已更新
+    updatePlanFilterOptions();
+    
     renderPlans();
+    
+    console.log('🔍 筛选完成');
 }
 
 function updatePlanFilterOptions() {
+    console.log('🔍 更新筛选选项 - 开始执行');
+    
     const semesterSelect = document.getElementById('planFilterSemester');
     const teacherSelect = document.getElementById('planFilterTeacher');
     const scheduleSelect = document.getElementById('scheduleSemesterSelect');
     const teacherScheduleSelect = document.getElementById('teacherScheduleSemester');
     
     // 提取所有学期
-    const semesters = [...new Set(currentPlans.map(p => p.semester))].sort().reverse();
+    const plans = window.currentPlans || currentPlans || [];
+    const semesters = [...new Set(plans.map(p => p.semester))].sort().reverse();
+    console.log('🔍 可用学期:', semesters);
 
     // 1. 更新筛选区的学期下拉框
     if (semesterSelect) {
         const currentSemester = semesterSelect.value;
+        console.log('🔍 更新学期下拉框 - 当前值:', currentSemester);
+        
         semesterSelect.innerHTML = '<option value="">所有学期</option>' + 
             semesters.map(s => `<option value="${s}">${s}</option>`).join('');
-        semesterSelect.value = currentSemester;
+        
+        // 如果当前值有效则保持，否则重置为空
+        if (currentSemester && semesters.includes(currentSemester)) {
+            semesterSelect.value = currentSemester;
+        } else {
+            semesterSelect.value = '';
+        }
+        console.log('🔍 学期下拉框更新完成 - 新值:', semesterSelect.value);
     }
 
-    // 2. 更新课表预览区的学期下拉框 (确保包含最新学期)
-    const updateScheduleOptions = (select) => {
-        if (!select) return;
+    // 2. 更新课表预览区的学期下拉框
+    const updateScheduleOptions = (select, selectName) => {
+        if (!select) {
+            console.log('🔍 未找到下拉框:', selectName);
+            return;
+        }
         const currentVal = select.value;
+        console.log(`🔍 更新${selectName} - 当前值:`, currentVal);
+        
         select.innerHTML = '<option value="">所有学期</option>' + semesters.map(s => `<option value="${s}">${s}</option>`).join('');
         
-        // 如果当前值有效则保持，否则选中第一个
+        // 如果当前值有效则保持，否则重置为空
         if (currentVal && semesters.includes(currentVal)) {
             select.value = currentVal;
-        } else if (currentVal === '') {
-            select.value = '';
         } else {
-            select.value = ''; // 默认选中 "所有学期"
+            select.value = '';
         }
+        console.log(`🔍 ${selectName}更新完成 - 新值:`, select.value);
     };
 
-    updateScheduleOptions(scheduleSelect);
-    updateScheduleOptions(teacherScheduleSelect);
+    updateScheduleOptions(scheduleSelect, '课表预览学期下拉框');
+    updateScheduleOptions(teacherScheduleSelect, '教师课表学期下拉框');
 
     // 3. 更新筛选区的教师下拉框
     if (teacherSelect) {
         const currentTeacher = teacherSelect.value;
-        const teachers = currentUsers.filter(u => u.role === 'teacher');
+        const teachers = window.currentUsers || currentUsers || [];
+        const teacherList = teachers.filter(u => u.role === 'teacher');
+        console.log('🔍 可用教师:', teacherList.map(t => ({id: t.id, name: t.name})));
+        
         teacherSelect.innerHTML = '<option value="">所有教师</option>' + 
-            teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        teacherSelect.value = currentTeacher;
+            teacherList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        
+        // 如果当前值有效则保持，否则重置为空
+        if (currentTeacher && teacherList.some(t => t.id === currentTeacher)) {
+            teacherSelect.value = currentTeacher;
+        } else {
+            teacherSelect.value = '';
+        }
+        console.log('🔍 教师下拉框更新完成 - 新值:', teacherSelect.value);
     }
 
-    // 3.1 更新课表预览区的教师下拉框
+    // 4. 更新课表预览区的教师下拉框
     const scheduleTeacherSelect = document.getElementById('teacherScheduleSelect');
     if (scheduleTeacherSelect) {
         const currentVal = scheduleTeacherSelect.value;
-        const teachers = currentUsers.filter(u => u.role === 'teacher');
+        const teachers = window.currentUsers || currentUsers || [];
+        const teacherList = teachers.filter(u => u.role === 'teacher');
+        
         scheduleTeacherSelect.innerHTML = '<option value="">请选择...</option>' + 
-            teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        if (currentVal && teachers.some(t => t.id === currentVal)) {
+            teacherList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        
+        if (currentVal && teacherList.some(t => t.id === currentVal)) {
             scheduleTeacherSelect.value = currentVal;
         }
     }
 
-    // 4. 同步更新课表预览的学期 (如果筛选了特定学期)
-    if (planState.filters.semester) {
-        if (scheduleSelect) {
-            scheduleSelect.value = planState.filters.semester;
-            renderOverallSchedule();
-        }
-        
-        if (teacherScheduleSelect) {
-            teacherScheduleSelect.value = planState.filters.semester;
-            // 仅当教师课表Tab激活时刷新
-            const activeTab = document.querySelector('#scheduleTabs .nav-link.active');
-            if (activeTab && activeTab.id === 'teacher-tab') {
-                renderTeacherSchedule();
-            }
-        }
-    }
+    console.log('🔍 筛选选项更新完成');
 }
 
 function renderPagination(elementId, totalPages, currentPage, onPageChange) {
