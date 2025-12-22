@@ -74,7 +74,7 @@ const ResetPasswordModule = {
             if (newInput.value.length < 8) throw new Error("为了安全，新密码长度不能少于 8 位");
             if (newInput.value !== confirmInput.value) throw new Error("两次输入密码不一致");
 
-            const db = await BaseDB.open();
+            const db = window.dbManager ? await window.dbManager.init() : await BaseDB.open();
             const tx = db.transaction(['users'], 'readwrite');
             const store = tx.objectStore('users');
 

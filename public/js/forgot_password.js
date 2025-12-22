@@ -35,9 +35,12 @@ const ForgotPasswordModule = {
         };
     },
 
-    // 3. 数据库适配
+    // 3. 数据库适配 - 兼容新版 DatabaseManager
     async getDB() {
-        if (typeof BaseDB !== 'undefined' && typeof BaseDB.open === 'function') {
+        if (window.dbManager) {
+            return await window.dbManager.init();
+        } else if (typeof BaseDB !== 'undefined' && typeof BaseDB.open === 'function') {
+            // 兼容旧接口
             return await BaseDB.open();
         }
         throw new Error("ForgotPasswordModule: 数据库接口未就绪");

@@ -71,7 +71,7 @@ const CourseModule = {
         }
             
             // 兼容性获取数据库实例
-            const db = typeof BaseDB !== 'undefined' ? await BaseDB.open() : await openDB();
+            const db = window.dbManager ? await window.dbManager.init() : (typeof BaseDB !== 'undefined' ? await BaseDB.open() : await openDB());
             return new Promise((resolve) => {
                 const transaction = db.transaction(['courses'], 'readonly');
                 const store = transaction.objectStore('courses');

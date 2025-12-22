@@ -385,7 +385,7 @@ class DatabaseManager {
                 title: '链表数据结构实现',
                 description: '实现单链表的基本操作：创建、插入、删除、查找等',
                 type: 'homework',
-                deadline: '2024-02-15',
+                deadline: '2025-12-31',
                 maxScore: 100,
                 requirements: '使用C语言或Java实现，提交源代码和测试用例',
                 status: 'active',
