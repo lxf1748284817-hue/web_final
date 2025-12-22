@@ -401,7 +401,7 @@ function openStudentModal(id = null) {
 }
 
 function switchToStudentEdit(id) {
-    const stu = currentUsers.find(u => u.id === id);
+    const stu = (window.currentUsers || currentUsers || []).find(u => u.id === id);
     if (!stu) return;
 
     // 1. 隐藏所有 section，显示编辑 section
@@ -417,7 +417,8 @@ function switchToStudentEdit(id) {
     
     // 填充班级下拉框
     const classSelect = document.getElementById('editStudentClassId');
-    classSelect.innerHTML = currentClasses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const classes = window.currentClasses || currentClasses || [];
+    classSelect.innerHTML = classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     classSelect.value = stu.classId;
 
     // 性别 (假设数据中有 gender 字段，如果没有默认为 male)
@@ -622,12 +623,17 @@ function renderTeachers() {
 }
 
 function openTeacherModal(id = null) {
+    // 确保Modal已初始化
+    if (!teacherModal) {
+        teacherModal = new bootstrap.Modal(document.getElementById('teacherModal'));
+    }
+    
     const form = document.getElementById('teacherForm');
     form.reset();
     document.getElementById('teacherId').value = '';
     
     if (id) {
-        const t = currentUsers.find(u => u.id === id);
+        const t = (window.currentUsers || currentUsers || []).find(u => u.id === id);
         if (t) {
             document.getElementById('teacherId').value = t.id;
             form.elements['username'].value = t.username;
