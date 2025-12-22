@@ -99,8 +99,11 @@ function exportAllScores() {
     const headers = ['课程', '教师', '学生学号', '学生姓名', '平时成绩', '期中成绩', '期末成绩', '总评成绩'];
     const rows = [];
 
-    currentScores.forEach(score => {
-        const plan = currentPlans.find(p => p.id === score.coursePlanId);
+    const scores = currentScores || [];
+    const plans = window.currentPlans || currentPlans || [];
+    
+    scores.forEach(score => {
+        const plan = plans.find(p => p.id === score.coursePlanId);
         const courseName = plan ? getCourseName(plan.courseId) : '未知课程';
         const teacherName = plan ? getUserName(plan.teacherId) : '未知教师';
         const studentName = getUserName(score.studentId);
@@ -695,12 +698,17 @@ function renderCourses(data = null) {
 }
 
 function openCourseModal(id = null) {
+    // 确保Modal已初始化
+    if (!courseModal) {
+        courseModal = new bootstrap.Modal(document.getElementById('courseModal'));
+    }
+    
     const form = document.getElementById('courseForm');
     form.reset();
     document.getElementById('courseId').value = '';
     
     if (id) {
-        const c = currentCourses.find(x => x.id === id);
+        const c = (window.currentCourses || currentCourses || []).find(x => x.id === id);
         if (c) {
             document.getElementById('courseId').value = c.id;
             form.elements['code'].value = c.code;
@@ -985,6 +993,11 @@ function renderPagination(elementId, totalPages, currentPage, onPageChange) {
 // --- 模态框逻辑 ---
 
 function openPlanModal(id = null) {
+    // 确保Modal已初始化
+    if (!planModal) {
+        planModal = new bootstrap.Modal(document.getElementById('planModal'));
+    }
+    
     const form = document.getElementById('planForm');
     form.reset();
     document.getElementById('planId').value = '';
@@ -994,14 +1007,17 @@ function openPlanModal(id = null) {
     const courseSelect = document.getElementById('planCourseId');
     const teacherSelect = document.getElementById('planTeacherId');
     
+    const courses = window.currentCourses || currentCourses || [];
+    const users = window.currentUsers || currentUsers || [];
+    
     courseSelect.innerHTML = '<option value="" disabled selected>请选择课程</option>' + 
-        currentCourses.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join('');
+        courses.map(c => `<option value="${c.id}">${c.name} (${c.code})</option>`).join('');
     
     teacherSelect.innerHTML = '<option value="" disabled selected>请选择教师</option>' + 
-        currentUsers.filter(u => u.role === 'teacher').map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        users.filter(u => u.role === 'teacher').map(t => `<option value="${t.id}">${t.name}</option>`).join('');
 
     if (id) {
-        const p = currentPlans.find(x => x.id === id);
+        const p = (window.currentPlans || currentPlans || []).find(x => x.id === id);
         if (p) {
             document.getElementById('planId').value = p.id;
             courseSelect.value = p.courseId;
