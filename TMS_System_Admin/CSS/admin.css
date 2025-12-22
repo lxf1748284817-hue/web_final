@@ -1069,3 +1069,129 @@ input:checked + .slider:before {
     }
 >>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 }
+
+/* Badge 标签样式 */
+.badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.badge-info { background-color: #e3f2fd; color: #1565c0; }
+.badge-warning { background-color: #fff3cd; color: #ffc107; }
+.badge-danger { background-color: #ffebee; color: #dc3545; }
+.badge-success { background-color: #d4edda; color: #28a745; }
+.badge-primary { background-color: #cce5ff; color: #007bff; }
+.badge-secondary { background-color: #e2e3e5; color: #6c757d; }
+
+/* 状态标签样式 */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.status-badge.status-active {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.status-badge.status-inactive {
+    background-color: #e2e3e5;
+    color: #6c757d;
+}
+
+/* 操作按钮样式 */
+.btn-detail, .btn-edit, .btn-delete {
+    padding: 5px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.3s;
+    margin: 0 3px;
+}
+
+.btn-detail {
+    background-color: #3498db;
+    color: white;
+}
+
+.btn-detail:hover {
+    background-color: #2980b9;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+/* 备份列表项样式 */
+.backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.backup-item:hover {
+    background-color: #f0f0f0;
+    transform: translateX(5px);
+}
+
+.backup-info {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.backup-date, .backup-type, .backup-size {
+    font-size: 14px;
+    color: #555;
+}
+
+.backup-date {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.backup-status {
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.backup-status.status-success {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+/* 下拉菜单显示 */
+.dropdown-menu.show {
+    display: block;
+}

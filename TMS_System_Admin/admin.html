@@ -22,11 +22,7 @@
                 <div class="user-avatar">SA</div>
                 <div class="user-details">
                     <div class="user-name" id="current-user">系统管理员</div>
-<<<<<<< HEAD
                     <div class="user-role">System Admin</div>
-=======
-                    <div class="user-role" id="current-role">System Admin</div>
->>>>>>> d67d776047a688475626e64a40d5af12aab653cc
                 </div>
             </div>
             
@@ -56,7 +52,7 @@
                     </a>
                 </li>
                 <li class="nav-item logout-item">
-                    <a href="index.html" class="nav-link logout-link">
+                    <a href="#" class="nav-link logout-link">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>退出系统</span>
                     </a>
@@ -763,18 +759,21 @@
     </div>
 >>>>>>> d67d776047a688475626e64a40d5af12aab653cc
 
-    <script type="module">
-        // 导入统一服务
-        import { dbManager } from '../shared/DatabaseManager.js';
-        import { authService } from '../shared/AuthService.js';
+    <!-- 加载 CryptoJS 用于密码加密 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- 加载统一服务 -->
+    <script src="../shared/DatabaseManager.js"></script>
+    <script src="../shared/AuthService.js"></script>
 
-        // 兼容现有代码
-        window.dbManager = dbManager;
-        window.authService = authService;
-
+    <script>
         // 初始化系统
-        document.addEventListener('DOMContentLoaded', async () => {
+        (async () => {
             try {
+                // 确保服务已加载
+                if (typeof dbManager === 'undefined' || typeof authService === 'undefined') {
+                    throw new Error('服务加载失败');
+                }
+
                 // 检查登录状态
                 const session = await authService.checkSession();
                 if (!session || session.role !== 'sysadmin') {
@@ -785,15 +784,20 @@
 
                 // 初始化数据库
                 await dbManager.init();
-                
-                // 加载现有脚本
+
+                // 加载 admin.js 并初始化
                 await loadScript('JS/admin.js');
+
+                // 确保脚本加载完成后初始化
+                if (typeof initSystemAdmin === 'function') {
+                    await initSystemAdmin();
+                }
 
             } catch (error) {
                 console.error('❌ 系统管理端初始化失败:', error);
                 alert('系统初始化失败，请刷新页面重试');
             }
-        });
+        })();
 
         // 动态加载脚本
         function loadScript(src) {
