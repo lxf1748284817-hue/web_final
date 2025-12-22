@@ -408,7 +408,28 @@ function openStudentModal(id = null) {
     classSelect.innerHTML = currentClasses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
     document.getElementById('studentModalLabel').textContent = '新增学生';
-    studentModal.show();
+    
+    // 安全检查：确保studentModal已初始化
+    if (typeof studentModal !== 'undefined' && studentModal !== null) {
+        studentModal.show();
+    } else {
+        // 备用方案：使用原生方式显示模态框
+        const modalElement = document.getElementById('studentModal');
+        if (modalElement) {
+            // 尝试使用Bootstrap Modal
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                studentModal = new bootstrap.Modal(modalElement);
+                studentModal.show();
+            } else {
+                // 最后的备用方案：直接显示
+                modalElement.classList.add('show');
+                modalElement.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+        } else {
+            alert('学生模态框未找到，请检查页面结构');
+        }
+    }
 }
 
 function switchToStudentEdit(id) {
