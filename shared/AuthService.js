@@ -60,8 +60,18 @@ class AuthService {
                 throw new Error('用户名或密码错误');
             }
 
+            // 角色映射：将界面选择的角色映射到数据库存储的角色
+            const roleMapping = {
+                'admin_sys': 'sysadmin',
+                'sysadmin': 'sysadmin',
+                'admin_edu': 'admin_edu',
+                'student': 'student',
+                'teacher': 'teacher'
+            };
+            const mappedRole = roleMapping[role] || role;
+
             // 验证角色
-            if (user.role !== role) {
+            if (user.role !== mappedRole) {
                 throw new Error('身份不匹配：该账号不具备所选身份权限');
             }
 
@@ -255,18 +265,20 @@ class AuthService {
      * 根据角色跳转到对应页面
      */
     redirectByRole(role) {
-        // 将角色字符串映射到ROUTES的键名
+        // 将角色字符串映射到ROUTES的键名（支持界面选择的角色名和数据库存储的角色名）
         const roleMap = {
             'student': 'STUDENT',
             'teacher': 'TEACHER',
             'admin_edu': 'ADMIN_EDU',
-            'sysadmin': 'ADMIN_SYS'
+            'admin_sys': 'ADMIN_SYS',  // 界面选择的角色
+            'sysadmin': 'ADMIN_SYS'    // 数据库存储的角色
         };
-        
+
         const routeKey = roleMap[role];
         const route = ROUTES[routeKey];
-        
+
         if (route) {
+            console.log(`🔗 跳转路径: ${route}`);
             alert(`登录成功！正在进入${this.getRoleDisplayName(role)}端...`);
             window.location.href = route;
         } else {

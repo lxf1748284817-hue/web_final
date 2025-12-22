@@ -777,7 +777,7 @@
             try {
                 // 检查登录状态
                 const session = await authService.checkSession();
-                if (!session || session.role !== 'admin_sys') {
+                if (!session || session.role !== 'sysadmin') {
                     alert('请先登录系统管理端！');
                     window.location.href = '../public/login.html?role=admin_sys';
                     return;
