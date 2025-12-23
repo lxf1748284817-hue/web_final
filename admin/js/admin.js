@@ -863,20 +863,32 @@ function openTeacherModal(id = null) {
 }
 
 async function saveTeacher() {
-    const form = document.getElementById('teacherForm');
-    const id = document.getElementById('teacherId').value;
-    
-    const teacher = {
-        id: id || generateId('tea_'),
-        username: form.elements['username'].value,
-        name: form.elements['name'].value,
-        role: 'teacher',
-        password: '123'
-    };
+    try {
+        const form = document.getElementById('teacherForm');
+        const id = document.getElementById('teacherId').value;
+        
+        const teacher = {
+            id: id || generateId('tea_'),
+            username: form.elements['username'].value,
+            name: form.elements['name'].value,
+            role: 'teacher',
+            password: '123'
+        };
 
-    await window.dbManager.add('users', teacher);
-    teacherModal.hide();
-    loadAllData();
+        if (id) {
+            // 编辑模式：使用 update
+            await window.dbManager.update('users', teacher);
+        } else {
+            // 新增模式：使用 add
+            await window.dbManager.add('users', teacher);
+        }
+        
+        teacherModal.hide();
+        loadAllData();
+    } catch (error) {
+        console.error('保存教师失败:', error);
+        alert('保存失败，请查看控制台错误信息');
+    }
 }
 
 async function deleteUser(id) {
@@ -1362,9 +1374,21 @@ async function savePlan() {
         weekType
     };
 
-    await window.dbManager.add('plans', plan);
-    planModal.hide();
-    loadAllData();
+    try {
+        if (id) {
+            // 编辑模式：使用 update
+            await window.dbManager.update('plans', plan);
+        } else {
+            // 新增模式：使用 add
+            await window.dbManager.add('plans', plan);
+        }
+        
+        planModal.hide();
+        loadAllData();
+    } catch (error) {
+        console.error('保存开课计划失败:', error);
+        alert('保存失败，请查看控制台错误信息');
+    }
 }
 
 async function deletePlan(id) {
