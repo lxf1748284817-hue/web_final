@@ -88,23 +88,56 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (!assignment.id) {
                             assignment.id = `assign_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
                         }
-                        
+
                         // 确保有创建时间
                         if (!assignment.createdAt) {
                             assignment.createdAt = new Date().toISOString();
                         }
-                        
-                        // 保存到数据库
-                        await window.dbManager.add('assignments', assignment);
-                        
+
+                        // 使用 update 而不是 add（避免 Key already exists 错误）
+                        await window.dbManager.update('assignments', assignment);
+
                         return true;
                     } catch (error) {
                         console.error('❌ 保存作业失败:', error);
                         return false;
                     }
                 },
-                saveExamAssignment: () => true,
-                saveSubmission: () => true,
+                saveExamAssignment: async (exam) => {
+                    try {
+                        // 生成唯一ID（如果不存在）
+                        if (!exam.id) {
+                            exam.id = `exam_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                        }
+
+                        // 确保有创建时间
+                        if (!exam.createdAt) {
+                            exam.createdAt = new Date().toISOString();
+                        }
+
+                        // 使用 update 而不是 add
+                        await window.dbManager.update('assignments', exam);
+
+                        return true;
+                    } catch (error) {
+                        console.error('❌ 保存考试失败:', error);
+                        return false;
+                    }
+                },
+                saveSubmission: async (submission) => {
+                    try {
+                        console.log('💾 保存提交记录:', submission);
+
+                        // 使用 update 更新已存在的记录
+                        await window.dbManager.update('assignment_submissions', submission);
+
+                        console.log('✅ 提交记录保存成功');
+                        return true;
+                    } catch (error) {
+                        console.error('❌ 保存提交记录失败:', error);
+                        throw error;
+                    }
+                },
                 deleteHomeworkAssignment: () => true,
                 deleteExamAssignment: () => true,
                 deleteSubmissionsByAssignment: () => true

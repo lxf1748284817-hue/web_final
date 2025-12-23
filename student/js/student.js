@@ -892,7 +892,7 @@ async function loadCourseAssignments(planId) {
                             <div class="submission-info">
                                 <p>📤 提交时间：${mySubmission.submitTime}</p>
                                 ${mySubmission.score ? `<p>🎯 得分：${mySubmission.score}分</p>` : '<p>⏳ 待批改</p>'}
-                                ${mySubmission.feedback ? `<p>💬 教师评语：${mySubmission.feedback}</p>` : ''}
+                                ${mySubmission.comment ? `<p>💬 教师评语：${mySubmission.comment}</p>` : ''}
                             </div>
                         ` : ''}
                     </div>

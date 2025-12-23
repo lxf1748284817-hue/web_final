@@ -129,15 +129,6 @@ async function createHomework() {
         // 重置表单
         document.getElementById('homeworkForm').reset();
         renderHomeworkList();
-
-        // 模拟添加学生提交记录（实际应由学生端提交）
-        await addMockSubmission(homework.id, 'homework');
-
-        // 从IndexedDB重新加载提交记录
-        submissions = await window.gradesManager.getSubmissions();
-
-        // 重新渲染待批改列表
-        await renderGradingList();
     } catch (error) {
         console.error('❌ 创建作业失败:', error);
     }
@@ -179,45 +170,6 @@ async function createExam() {
     // 重置表单
     document.getElementById('examForm').reset();
     renderExamList();
-
-    // 模拟添加学生提交记录（实际应由学生端提交）
-    await addMockSubmission(exam.id, 'exam');
-
-    // 从IndexedDB重新加载提交记录
-    submissions = await window.gradesManager.getSubmissions();
-
-    // 重新渲染待批改列表
-    await renderGradingList();
-}
-
-// 模拟学生提交
-async function addMockSubmission(assignmentId, type) {
-    const mockStudents = [
-        { id: 1001, name: '张三', studentId: '20240001' },
-        { id: 1002, name: '李四', studentId: '20240002' },
-        { id: 1003, name: '王五', studentId: '20240003' },
-        { id: 1004, name: '赵六', studentId: '20240004' },
-        { id: 1005, name: '钱七', studentId: '20240005' }
-    ];
-
-    for (const student of mockStudents) {
-        const submission = {
-            id: Date.now() + Math.random(),
-            assignmentId: assignmentId,
-            assignmentType: type,
-            studentId: student.studentId, // 使用学号而不是ID
-            studentName: student.name,
-            submitTime: new Date().toLocaleString('zh-CN'),
-            status: '已提交',
-            score: null,
-            comment: '',
-            graded: false
-        };
-
-        submissions.push(submission);
-        // 保存到IndexedDB
-        await window.gradesManager.saveSubmission(submission);
-    }
 }
 
 // 渲染作业列表
