@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="course-card-header">
                 <div class="course-card-title">
                     <h3>${course.name}</h3>
-                    <p class="course-card-code">${course.code} · ${course.class}</p>
+                    <p class="course-card-code">${course.code}</p>
                 </div>
                 <span class="course-status-badge ${statusClass}">${statusText}</span>
             </div>
@@ -590,7 +590,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('courseName').value = course.name;
         document.getElementById('courseCode').value = course.code;
         document.getElementById('courseCredit').value = course.credits || 3;
-        document.getElementById('courseClass').value = course.code; // 用课程代码代替班级
         document.getElementById('courseDescription').value = course.description;
         document.getElementById('allowPreview').checked = course.allowPreview || false;
         
@@ -802,7 +801,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 获取表单数据
         const courseName = document.getElementById('courseName').value.trim() || '示例课程名称';
         const courseCode = document.getElementById('courseCode').value.trim() || 'CS000';
-        const courseClass = document.getElementById('courseClass').value.trim() || '计科200班';
         const courseCredit = document.getElementById('courseCredit').value || '3';
         const courseDescription = document.getElementById('courseDescription').value.trim() || '这里是课程简介，用于描述课程的主要内容、教学目标等信息。';
 
@@ -814,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="preview-content">
                 <div class="preview-header">
                     <h2>${courseName}</h2>
-                    <p>${courseCode} · ${courseClass} · ${courseCredit}学分</p>
+                    <p>${courseCode} · ${courseCredit}学分</p>
                 </div>
                 <div class="preview-section">
                     <h3>课程简介</h3>

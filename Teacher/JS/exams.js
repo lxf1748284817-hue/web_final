@@ -218,6 +218,9 @@ function renderHomeworkList() {
         const submissionCount = hwSubmissions.length;
         const gradedCount = hwSubmissions.filter(s => s.graded && s.score !== null).length;
         
+        // 获取课程名称（如果没有存储courseName，则从courses数组中查找）
+        const courseName = hw.courseName || courses.find(c => c.id === hw.courseId)?.name || '未知课程';
+        
         const item = document.createElement('div');
         item.className = 'assignment-item';
         item.innerHTML = `
@@ -228,7 +231,7 @@ function renderHomeworkList() {
                 </span>
             </div>
             <div class="assignment-meta">
-                <span>课程: ${hw.courseName}</span>
+                <span>课程: ${courseName}</span>
                 <span>截止时间: ${formatDateTime(hw.deadline)}</span>
                 <span>发布时间: ${hw.createTime}</span>
             </div>
@@ -249,6 +252,9 @@ function renderExamList() {
     list.innerHTML = '';
     
     examAssignments.forEach(exam => {
+        // 获取课程名称（如果没有存储courseName，则从courses数组中查找）
+        const courseName = exam.courseName || courses.find(c => c.id === exam.courseId)?.name || '未知课程';
+        
         const item = document.createElement('div');
         item.className = 'assignment-item';
         item.innerHTML = `
@@ -259,7 +265,7 @@ function renderExamList() {
                 </span>
             </div>
             <div class="assignment-meta">
-                <span>课程: ${exam.courseName}</span>
+                <span>课程: ${courseName}</span>
                 <span>开始时间: ${formatDateTime(exam.startTime)}</span>
                 <span>结束时间: ${formatDateTime(exam.endTime)}</span>
                 <span>时长: ${exam.duration}分钟</span>
@@ -794,24 +800,24 @@ function viewSubmissions(assignmentId, type) {
 
 // 批改作业/考试
 function gradeAssignment(assignmentId, type) {
-    const ungradedSubmissions = submissions.filter(s => 
-        s.assignmentId === assignmentId && 
-        s.assignmentType === type && 
+    const ungradedSubmissions = submissions.filter(s =>
+        s.assignmentId === assignmentId &&
+        s.assignmentType === type &&
         !s.graded
     );
-    
+
     if (ungradedSubmissions.length === 0) {
         alert('所有提交都已批改完成');
         return;
     }
-    
+
     // 切换到批改标签页
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    
+
     document.querySelector('.tab-btn[data-tab="grading"]').classList.add('active');
     document.getElementById('grading').classList.add('active');
-    
+
     // 滚动到顶部
     window.scrollTo(0, 0);
 }
@@ -819,7 +825,7 @@ function gradeAssignment(assignmentId, type) {
 // 删除作业/考试
 async function deleteAssignment(assignmentId, type) {
     if (!confirm('确定要删除吗？')) return;
-    
+
     try {
         if (type === 'homework') {
             homeworkAssignments = homeworkAssignments.filter(h => h.id !== assignmentId);
@@ -832,13 +838,13 @@ async function deleteAssignment(assignmentId, type) {
             await window.gradesManager.deleteExamAssignment(assignmentId);
             renderExamList();
         }
-        
+
         // 删除相关提交记录
         submissions = submissions.filter(s => s.assignmentId !== assignmentId);
         // 从IndexedDB中删除相关提交记录
         await window.gradesManager.deleteSubmissionsByAssignment(assignmentId);
         renderGradingList();
-        
+
         showNotification('删除成功', 'success');
     } catch (error) {
         console.error('删除作业/考试失败:', error);
