@@ -42,8 +42,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let bannerImage = null;
     let galleryImages = [];
     
+    // 更新用户信息
+    updateUserInfo();
+    
     // 初始化页面
     initPage();
+
+    function updateUserInfo() {
+        const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (session) {
+            const userNameEl = document.querySelector('.user-info h4');
+            const userDeptEl = document.querySelector('.user-info p');
+            if (userNameEl) userNameEl.textContent = session.name || '教师';
+            if (userDeptEl) userDeptEl.textContent = session.department || '未设置院系';
+        }
+    }
     
     async function initPage() {
         try {

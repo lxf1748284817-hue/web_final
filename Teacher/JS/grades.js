@@ -3,8 +3,20 @@
  * 主要功能：成绩录入、批量导入、数据计算与验证
  */
 
+// 更新用户信息
+function updateUserInfo() {
+    const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (session) {
+        const userNameEl = document.querySelector('.user-info h4');
+        const userDeptEl = document.querySelector('.user-info p');
+        if (userNameEl) userNameEl.textContent = session.name || '教师';
+        if (userDeptEl) userDeptEl.textContent = session.department || '未设置院系';
+    }
+}
+
 // 导出初始化函数
 window.initGradesPage = async function() {
+    updateUserInfo();
     
     // 初始化统一数据库
     if (window.dbManager) {

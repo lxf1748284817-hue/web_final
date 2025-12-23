@@ -4,8 +4,22 @@ let homeworkAssignments = [];
 let examAssignments = [];
 let submissions = [];
 
+// 更新用户信息
+function updateUserInfo() {
+    const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (session) {
+        const userNameEl = document.querySelector('.user-info h4');
+        const userDeptEl = document.querySelector('.user-info p');
+        if (userNameEl) userNameEl.textContent = session.name || '教师';
+        if (userDeptEl) userDeptEl.textContent = session.department || '未设置院系';
+    }
+}
+
 // 导出初始化函数
-window.initExamsPage = initPage;
+window.initExamsPage = function() {
+    updateUserInfo();
+    initPage();
+};
 
 async function initPage() {
     try {
