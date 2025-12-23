@@ -103,9 +103,9 @@ async function createHomework() {
         const courseId = document.getElementById('hwCourse').value;
         const description = document.getElementById('hwDescription').value;
         const deadline = document.getElementById('hwDeadline').value;
-        
+
         const courseName = courses.find(c => c.id == courseId)?.name || '';
-        
+
         const homework = {
             id: Date.now(),
             title: title,
@@ -117,18 +117,27 @@ async function createHomework() {
             submissions: 0,
             graded: 0
         };
-        
+
         homeworkAssignments.push(homework);
-        
+
         // 保存到IndexedDB
         await window.gradesManager.saveHomeworkAssignment(homework);
-        
+
+        // 从IndexedDB重新加载作业列表（确保数据同步）
+        homeworkAssignments = await window.gradesManager.getHomeworkAssignments();
+
         // 重置表单
         document.getElementById('homeworkForm').reset();
         renderHomeworkList();
-        
+
         // 模拟添加学生提交记录（实际应由学生端提交）
-        addMockSubmission(homework.id, 'homework');
+        await addMockSubmission(homework.id, 'homework');
+
+        // 从IndexedDB重新加载提交记录
+        submissions = await window.gradesManager.getSubmissions();
+
+        // 重新渲染待批改列表
+        await renderGradingList();
     } catch (error) {
         console.error('❌ 创建作业失败:', error);
     }
@@ -142,9 +151,9 @@ async function createExam() {
     const startTime = document.getElementById('examStart').value;
     const endTime = document.getElementById('examEnd').value;
     const duration = document.getElementById('examDuration').value;
-    
+
     const courseName = courses.find(c => c.id == courseId)?.name || '';
-    
+
     const exam = {
         id: Date.now(),
         title: title,
@@ -158,18 +167,27 @@ async function createExam() {
         submissions: 0,
         graded: 0
     };
-    
+
     examAssignments.push(exam);
-    
+
     // 保存到IndexedDB
     await window.gradesManager.saveExamAssignment(exam);
-    
+
+    // 从IndexedDB重新加载考试列表（确保数据同步）
+    examAssignments = await window.gradesManager.getExamAssignments();
+
     // 重置表单
     document.getElementById('examForm').reset();
     renderExamList();
-    
+
     // 模拟添加学生提交记录（实际应由学生端提交）
-    addMockSubmission(exam.id, 'exam');
+    await addMockSubmission(exam.id, 'exam');
+
+    // 从IndexedDB重新加载提交记录
+    submissions = await window.gradesManager.getSubmissions();
+
+    // 重新渲染待批改列表
+    await renderGradingList();
 }
 
 // 模拟学生提交
@@ -181,7 +199,7 @@ async function addMockSubmission(assignmentId, type) {
         { id: 1004, name: '赵六', studentId: '20240004' },
         { id: 1005, name: '钱七', studentId: '20240005' }
     ];
-    
+
     for (const student of mockStudents) {
         const submission = {
             id: Date.now() + Math.random(),
@@ -195,7 +213,7 @@ async function addMockSubmission(assignmentId, type) {
             comment: '',
             graded: false
         };
-        
+
         submissions.push(submission);
         // 保存到IndexedDB
         await window.gradesManager.saveSubmission(submission);
@@ -211,9 +229,11 @@ function renderHomeworkList() {
         // 实时计算该作业的提交人数
         const hwSubmissions = submissions.filter(s => {
             // 使用类型转换比较解决ID匹配问题
-            return s.assignmentId == hw.id && 
+            return s.assignmentId == hw.id &&
                    (s.assignmentType === 'homework' || !s.assignmentType); // 兼容历史记录
         });
+
+        console.log(`📝 作业 "${hw.title}" (ID: ${hw.id}) 的提交数:`, hwSubmissions.length);
         
         const submissionCount = hwSubmissions.length;
         const gradedCount = hwSubmissions.filter(s => s.graded && s.score !== null).length;
@@ -237,9 +257,9 @@ function renderHomeworkList() {
             </div>
             <div class="assignment-description">${hw.description}</div>
             <div class="assignment-actions">
-                <button onclick="viewSubmissions(${hw.id}, 'homework')">查看提交</button>
-                <button onclick="gradeAssignment(${hw.id}, 'homework')">批改</button>
-                <button onclick="deleteAssignment(${hw.id}, 'homework')">删除</button>
+                <button onclick="viewSubmissions('${hw.id}', 'homework')">查看提交</button>
+                <button onclick="gradeAssignment('${hw.id}', 'homework')">批改</button>
+                <button onclick="deleteAssignment('${hw.id}', 'homework')">删除</button>
             </div>
         `;
         list.appendChild(item);
@@ -272,9 +292,9 @@ function renderExamList() {
             </div>
             <div class="assignment-description">${exam.description}</div>
             <div class="assignment-actions">
-                <button onclick="viewSubmissions(${exam.id}, 'exam')">查看提交</button>
-                <button onclick="gradeAssignment(${exam.id}, 'exam')">批改</button>
-                <button onclick="deleteAssignment(${exam.id}, 'exam')">删除</button>
+                <button onclick="viewSubmissions('${exam.id}', 'exam')">查看提交</button>
+                <button onclick="gradeAssignment('${exam.id}', 'exam')">批改</button>
+                <button onclick="deleteAssignment('${exam.id}', 'exam')">删除</button>
             </div>
         `;
         list.appendChild(item);
@@ -282,32 +302,59 @@ function renderExamList() {
 }
 
 // 渲染批改列表
-function renderGradingList() {
+async function renderGradingList() {
     const list = document.getElementById('gradingList');
     list.innerHTML = '';
-    
+
+    // 获取所有提交记录
+    console.log('📋 所有提交记录:', submissions);
+
     // 获取未批改的提交
-    const ungradedSubmissions = submissions.filter(s => !s.graded);
-    
+    const ungradedSubmissions = submissions.filter(s => !s.graded || s.graded === false);
+    console.log('📝 未批改提交记录:', ungradedSubmissions);
+
     if (ungradedSubmissions.length === 0) {
         list.innerHTML = '<p class="no-items">暂无待批改作业</p>';
         return;
     }
-    
+
+    // 获取所有用户数据用于映射学生姓名
+    let users = [];
+    try {
+        users = await window.dbManager.getAll('users');
+    } catch (error) {
+        console.warn('获取用户数据失败:', error);
+    }
+
+    // 创建学生ID到姓名的映射
+    const studentMap = {};
+    users.forEach(user => {
+        if (user.role === 'student') {
+            studentMap[user.id] = user.name || user.username || '未知学生';
+        }
+    });
+
     ungradedSubmissions.forEach(sub => {
-        const assignment = sub.assignmentType === 'homework' 
-            ? homeworkAssignments.find(h => h.id === sub.assignmentId)
-            : examAssignments.find(e => e.id === sub.assignmentId);
-        
-        if (!assignment) return;
-        
+        const assignment = sub.assignmentType === 'homework'
+            ? homeworkAssignments.find(h => h.id == sub.assignmentId)
+            : examAssignments.find(e => e.id == sub.assignmentId);
+
+        if (!assignment) {
+            console.warn('⚠️ 找不到作业:', sub.assignmentId, 'type:', sub.assignmentType);
+            console.warn('  作业列表:', sub.assignmentType === 'homework' ? homeworkAssignments.map(h => h.id) : examAssignments.map(e => e.id));
+            return;
+        }
+
+        // 从映射中查找学生姓名
+        const studentName = sub.studentName || studentMap[sub.studentId] || sub.studentId || '未知学生';
+
         const item = document.createElement('div');
         item.className = 'grading-item';
         item.onclick = () => openGradingModal(sub.id);
         item.innerHTML = `
             <div class="assignment-title">${assignment.title}</div>
             <div class="assignment-meta">
-                <span>学生: ${sub.studentName}</span>
+                <span>学生: ${studentName}</span>
                 <span>提交时间: ${sub.submitTime}</span>
                 <span>类型: ${sub.assignmentType === 'homework' ? '作业' : '考试'}</span>
             </div>
@@ -318,23 +365,37 @@ function renderGradingList() {
 }
 
 // 打开批改模态框
-function openGradingModal(submissionId) {
+async function openGradingModal(submissionId) {
     const submission = submissions.find(s => s.id === submissionId);
     if (!submission) return;
-    
+
     const assignment = submission.assignmentType === 'homework'
-        ? homeworkAssignments.find(h => h.id === submission.assignmentId)
-        : examAssignments.find(e => e.id === submission.assignmentId);
-    
+        ? homeworkAssignments.find(h => h.id == submission.assignmentId)
+        : examAssignments.find(e => e.id == submission.assignmentId);
+
+    // 获取学生姓名（如果没有存储）
+    let studentName = submission.studentName;
+    if (!studentName && submission.studentId) {
+        try {
+            const users = await window.dbManager.getAll('users');
+            const student = users.find(u => u.id === submission.studentId && u.role === 'student');
+            if (student) {
+                studentName = student.name || student.username || '未知学生';
+            }
+        } catch (error) {
+            console.warn('获取学生姓名失败:', error);
+        }
+    }
+
     const modal = document.getElementById('gradingModal');
-    
+
     // 根据提交类型更新标题
     const modalTitle = modal.querySelector('h3');
     const assignmentType = submission.assignmentType === 'homework' ? '作业' : '考试';
     modalTitle.innerHTML = `<i class="fas fa-check-circle"></i> 批改${assignmentType}`;
-    
+
     // 更新学生信息
-    document.getElementById('studentName').textContent = submission.studentName;
+    document.getElementById('studentName').textContent = studentName || submission.studentId || '未知';
     document.getElementById('studentId').textContent = submission.studentId || '未知';
     document.getElementById('studentClass').textContent = getStudentClass(submission.studentId) || '未知';
     document.getElementById('submitTime').textContent = submission.submitTime;
@@ -745,10 +806,10 @@ async function submitGrade() {
         // 更新作业/考试的批改数量
         let assignmentToUpdate = null;
         if (submission.assignmentType === 'homework') {
-            assignmentToUpdate = homeworkAssignments.find(h => h.id === submission.assignmentId);
+            assignmentToUpdate = homeworkAssignments.find(h => h.id == submission.assignmentId);
             if (assignmentToUpdate) assignmentToUpdate.graded++;
         } else {
-            assignmentToUpdate = examAssignments.find(e => e.id === submission.assignmentId);
+            assignmentToUpdate = examAssignments.find(e => e.id == submission.assignmentId);
             if (assignmentToUpdate) assignmentToUpdate.graded++;
         }
         
@@ -779,29 +840,54 @@ async function submitGrade() {
 }
 
 // 查看提交情况
-function viewSubmissions(assignmentId, type) {
+async function viewSubmissions(assignmentId, type) {
     const assignmentSubmissions = submissions.filter(s => {
-        
+
         // 使用类型转换比较解决ID匹配问题
         const idMatch = s.assignmentId == assignmentId;
         // 兼容历史记录：如果assignmentType不存在，默认认为是homework
         const typeMatch = s.assignmentType === type || (!s.assignmentType && type === 'homework');
-        
+
         return idMatch && typeMatch;
+    });
+
+    // 获取作业/考试信息用于显示
+    const assignment = assignmentSubmissions.length > 0 && type === 'homework'
+        ? homeworkAssignments.find(h => h.id == assignmentId)
+        : assignmentSubmissions.length > 0 && type === 'exam'
+        ? examAssignments.find(e => e.id == assignmentId)
+        : null;
+
+    // 获取所有用户数据用于映射学生姓名
+    let users = [];
+    try {
+        users = await window.dbManager.getAll('users');
+    } catch (error) {
+        console.warn('获取用户数据失败:', error);
+    }
+
+    // 创建学生ID到姓名的映射
+    const studentMap = {};
+    users.forEach(user => {
+        if (user.role === 'student') {
+            studentMap[user.id] = user.name || user.username || '未知学生';
+        }
     });
 
     let message = `提交情况 (共${assignmentSubmissions.length}人):\n\n`;
     assignmentSubmissions.forEach(sub => {
-        message += `${sub.studentName}: ${sub.status} ${sub.graded ? `(已批改: ${sub.score}分)` : '(未批改)'}\n`;
+        // 从映射中查找学生姓名，如果没有则使用原始数据或默认值
+        const studentName = sub.studentName || studentMap[sub.studentId] || sub.studentId || '未知学生';
+        message += `${studentName}: ${sub.status || '已提交'} ${sub.graded ? `(已批改: ${sub.score}分)` : '(未批改)'}\n`;
     });
-    
+
     alert(message);
 }
 
 // 批改作业/考试
 function gradeAssignment(assignmentId, type) {
     const ungradedSubmissions = submissions.filter(s =>
-        s.assignmentId === assignmentId &&
+        s.assignmentId == assignmentId &&
         s.assignmentType === type &&
         !s.graded
     );
@@ -828,19 +914,19 @@ async function deleteAssignment(assignmentId, type) {
 
     try {
         if (type === 'homework') {
-            homeworkAssignments = homeworkAssignments.filter(h => h.id !== assignmentId);
+            homeworkAssignments = homeworkAssignments.filter(h => h.id != assignmentId);
             // 从IndexedDB中删除该作业
             await window.gradesManager.deleteHomeworkAssignment(assignmentId);
             renderHomeworkList();
         } else {
-            examAssignments = examAssignments.filter(e => e.id !== assignmentId);
+            examAssignments = examAssignments.filter(e => e.id != assignmentId);
             // 从IndexedDB中删除该考试
             await window.gradesManager.deleteExamAssignment(assignmentId);
             renderExamList();
         }
 
         // 删除相关提交记录
-        submissions = submissions.filter(s => s.assignmentId !== assignmentId);
+        submissions = submissions.filter(s => s.assignmentId != assignmentId);
         // 从IndexedDB中删除相关提交记录
         await window.gradesManager.deleteSubmissionsByAssignment(assignmentId);
         renderGradingList();
