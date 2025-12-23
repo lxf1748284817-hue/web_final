@@ -64,6 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 parentDropdown.querySelector('.dropdown-toggle').classList.add('active');
             }
         }
+        
+        // 3. 特殊处理：进入学生管理时重置搜索
+        if (targetId === 'student-section') {
+            renderStudents(true);
+        }
     };
 
     // 初始加载
@@ -180,22 +185,39 @@ function logout() {
  */
 async function loadAllData() {
     try {
+        console.log('🔄 开始加载数据...');
         currentClasses = await window.dbManager.getAll('classes') || [];
         currentCourses = await window.dbManager.getAll('courses') || [];
         currentPlans = await window.dbManager.getAll('plans') || [];
         currentUsers = await window.dbManager.getAll('users') || [];
         currentScores = await window.dbManager.getAll('scores') || [];
 
+        console.log('📊 数据加载完成:', {
+            班级: currentClasses.length,
+            课程: currentCourses.length,
+            计划: currentPlans.length,
+            用户: currentUsers.length,
+            成绩: currentScores.length
+        });
+
+        // 更新全局变量
+        window.currentClasses = currentClasses;
+        window.currentCourses = currentCourses;
+        window.currentPlans = currentPlans;
+        window.currentUsers = currentUsers;
+        window.currentScores = currentScores;
+
         renderClasses();
         renderCourses();
         renderPlans();
         renderSchedule();
         renderScoreAudit();
-        renderStudents();
+        renderStudents(false); // 不重置搜索，保持用户当前的搜索状态
         renderTeachers();
 
         // 确保筛选选项已正确更新
         updatePlanFilterOptions();
+        console.log('✅ 所有数据加载和渲染完成');
     } catch (e) {
         console.error("Failed to load data from IndexedDB", e);
     }
@@ -364,28 +386,46 @@ function viewClassStudents(classId) {
 
 function handleStudentSearch() {
     const input = document.getElementById('studentSearch');
-    if (!input.value.trim()) {
-        input.classList.add('is-invalid');
+    const searchValue = input.value.trim();
+    
+    if (!searchValue) {
+        // 搜索框为空时，清除任何无效状态并显示所有学生
+        input.classList.remove('is-invalid');
+        // 清空搜索状态，重新渲染显示所有学生
+        renderStudents();
         return;
     }
+    
     input.classList.remove('is-invalid');
     renderStudents();
 }
 
-function renderStudents() {
+function renderStudents(resetSearch = false) {
+    console.log('🎓 开始渲染学生列表...');
     const tbody = document.querySelector('#student-table tbody');
-    if (!tbody) return;
-    const students = (window.currentUsers || currentUsers || []).filter(u => u.role === 'student');
+    if (!tbody) {
+        console.error('❌ 未找到学生表格');
+        return;
+    }
+    
+    const allUsers = window.currentUsers || currentUsers || [];
+    const students = allUsers.filter(u => u.role === 'student');
+    console.log('📊 用户数据:', { 总用户数: allUsers.length, 学生数: students.length });
+    
+    // 获取搜索框元素
+    const searchInput = document.getElementById('studentSearch');
+    
+    // 如果是重置搜索（比如刚进入学生管理），清空搜索框
+    if (resetSearch && searchInput) {
+        searchInput.value = '';
+        searchInput.classList.remove('is-invalid');
+    }
     
     // 简单的搜索过滤
-    const searchInput = document.getElementById('studentSearch');
-    // 只有当输入框没有 invalid 状态时才进行过滤，或者如果为空但没有触发搜索（初始加载）则不过滤
-    // 但为了简单起见，我们直接读取值。如果用户清空了输入框并点击搜索，会显示 invalid，不会走到这里（如果通过按钮触发）。
-    // 但 renderStudents 也会被 loadAllData 调用。
-    // 策略：如果输入框为空，则显示所有。
     const search = searchInput?.value.trim().toLowerCase() || '';
     
     let filtered = students.filter(s => s.name.toLowerCase().includes(search) || s.username.toLowerCase().includes(search));
+    console.log('🔍 搜索过滤:', { 搜索词: search, 过滤后: filtered.length });
 
     // 处理排序
     if (sortState.tableId === 'student-table' && sortState.field) {
@@ -439,7 +479,9 @@ function openStudentModal(id = null) {
     
     // 填充班级下拉框
     const classSelect = form.elements['classId'];
-    classSelect.innerHTML = currentClasses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    const classes = window.currentClasses || currentClasses || [];
+    console.log('🏫 班级数据:', classes);
+    classSelect.innerHTML = classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
     document.getElementById('studentModalLabel').textContent = '新增学生';
     
@@ -484,6 +526,7 @@ function switchToStudentEdit(id) {
     // 填充班级下拉框
     const classSelect = document.getElementById('editStudentClassId');
     const classes = window.currentClasses || currentClasses || [];
+    console.log('🎓 编辑学生 - 班级数据:', classes);
     classSelect.innerHTML = classes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     classSelect.value = stu.classId;
 
@@ -505,7 +548,7 @@ function switchToStudentEdit(id) {
     if (birthdayInput) birthdayInput.value = stu.birthday || '';
 
     // 地区
-    const regionSelect = document.querySelector('#student-edit-section select:not(#editStudentClassId)');
+    const regionSelect = document.getElementById('editStudentRegion');
     if (regionSelect) regionSelect.value = stu.region || '';
     
     // 头像
@@ -583,18 +626,95 @@ function togglePhoneEdit() {
 }
 
 function confirmPhoneEdit() {
-    const newVal = document.getElementById('phoneInput').value.trim();
+    const input = document.getElementById('phoneInput');
+    const newVal = input.value.trim();
+    
+    // 验证手机号格式
+    if (newVal) {
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        if (!phoneRegex.test(newVal)) {
+            alert('请输入有效的11位中国大陆手机号');
+            input.focus();
+            return;
+        }
+    }
+    
+    // 更新显示
     document.getElementById('editStudentPhone').textContent = newVal || '未绑定手机';
     document.getElementById('phoneEditRow').style.display = 'none';
+    
+    // 立即保存到数据库
+    const studentId = document.getElementById('editStudentId').value;
+    if (studentId) {
+        const originalUser = (window.currentUsers || currentUsers || []).find(u => u.id === studentId);
+        if (originalUser) {
+            const updatedUser = {
+                ...originalUser,
+                phone: newVal || ''
+            };
+            window.dbManager.update('users', updatedUser).then(() => {
+                console.log('手机号已更新并保存');
+                // 更新全局数据
+                const userIndex = currentUsers.findIndex(u => u.id === studentId);
+                if (userIndex !== -1) {
+                    currentUsers[userIndex] = updatedUser;
+                }
+            }).catch(error => {
+                console.error('保存手机号失败:', error);
+                alert('保存手机号失败，请重试');
+            });
+        }
+    }
 }
 
 function cancelPhoneEdit() {
     document.getElementById('phoneEditRow').style.display = 'none';
 }
 
+function validatePhone(input) {
+    // 移除非数字字符
+    input.value = input.value.replace(/\D/g, '');
+    // 限制长度为11位
+    if (input.value.length > 11) {
+        input.value = input.value.slice(0, 11);
+    }
+    // 实时验证格式
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (input.value && !phoneRegex.test(input.value)) {
+        input.setCustomValidity('请输入有效的11位手机号');
+        input.classList.add('is-invalid');
+    } else {
+        input.setCustomValidity('');
+        input.classList.remove('is-invalid');
+    }
+}
+
 function unbindPhone() {
     if(confirm('确定要解除手机绑定吗？')) {
         document.getElementById('editStudentPhone').textContent = '未绑定手机';
+        
+        // 立即保存到数据库
+        const studentId = document.getElementById('editStudentId').value;
+        if (studentId) {
+            const originalUser = (window.currentUsers || currentUsers || []).find(u => u.id === studentId);
+            if (originalUser) {
+                const updatedUser = {
+                    ...originalUser,
+                    phone: ''
+                };
+                window.dbManager.update('users', updatedUser).then(() => {
+                    console.log('手机号已解绑并保存');
+                    // 更新全局数据
+                    const userIndex = currentUsers.findIndex(u => u.id === studentId);
+                    if (userIndex !== -1) {
+                        currentUsers[userIndex] = updatedUser;
+                    }
+                }).catch(error => {
+                    console.error('解除手机绑定失败:', error);
+                    alert('解除手机绑定失败，请重试');
+                });
+            }
+        }
     }
 }
 
@@ -608,62 +728,93 @@ function cancelEdit() {
 }
 
 async function saveStudentProfile() {
-    const id = document.getElementById('editStudentId').value;
-    const username = document.getElementById('editStudentUsername').value;
-    const classId = document.getElementById('editStudentClassId').value;
-    const gender = document.querySelector('input[name="gender"]:checked').value;
-    
-    // 获取新增字段
-    const birthday = document.querySelector('#student-edit-section input[type="date"]').value;
-    const region = document.querySelector('#student-edit-section select:not(#editStudentClassId)').value;
-    const avatar = document.getElementById('editStudentAvatar').src;
-    
-    // 获取邮箱和手机 (从 span 中读取)
-    const emailText = document.getElementById('editStudentEmail').textContent;
-    const phoneText = document.getElementById('editStudentPhone').textContent;
-    const email = emailText === '未绑定邮箱' ? '' : emailText;
-    const phone = phoneText === '未绑定手机' ? '' : phoneText;
+    try {
+        const id = document.getElementById('editStudentId').value;
+        const username = document.getElementById('editStudentUsername').value;
+        const classId = document.getElementById('editStudentClassId').value;
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+        
+        // 获取新增字段
+        const birthday = document.querySelector('#student-edit-section input[type="date"]').value;
+        const region = document.getElementById('editStudentRegion').value;
+        const avatar = document.getElementById('editStudentAvatar').src;
+        
+        // 获取邮箱和手机 (从 span 中读取)
+        const emailText = document.getElementById('editStudentEmail').textContent;
+        const phoneText = document.getElementById('editStudentPhone').textContent;
+        const email = emailText === '未绑定邮箱' ? '' : emailText;
+        const phone = phoneText === '未绑定手机' ? '' : phoneText;
 
-    if (!username) return alert('请输入昵称/学号');
+        if (!username) return alert('请输入昵称/学号');
 
-    // 查找原用户对象以保留其他字段
-    const originalUser = currentUsers.find(u => u.id === id);
-    if (!originalUser) return;
+        // 查找原用户对象以保留其他字段
+        const originalUser = currentUsers.find(u => u.id === id);
+        if (!originalUser) return alert('用户不存在，请重新加载页面');
 
-    const updatedUser = {
-        ...originalUser,
-        username: username,
-        classId: classId,
-        gender: gender,
-        birthday: birthday,
-        region: region,
-        email: email,
-        phone: phone,
-        avatar: avatar
-    };
+        const updatedUser = {
+            ...originalUser,
+            username: username,
+            classId: classId,
+            gender: gender,
+            birthday: birthday,
+            region: region,
+            email: email,
+            phone: phone,
+            avatar: avatar
+        };
 
-    await window.dbManager.update('users', updatedUser);
-    alert('保存成功');
-    cancelEdit(); // 返回列表
-    loadAllData(); // 刷新数据
+        await window.dbManager.update('users', updatedUser);
+        alert('保存成功');
+        cancelEdit(); // 返回列表
+        loadAllData(); // 刷新数据
+    } catch (error) {
+        console.error('保存学生信息失败:', error);
+        alert('保存失败，请查看控制台错误信息');
+    }
 }
 
 async function saveStudent() {
-    const form = document.getElementById('studentForm');
-    const id = document.getElementById('studentId').value;
-    
-    const student = {
-        id: id || generateId('stu_'),
-        username: form.elements['username'].value,
-        name: form.elements['name'].value,
-        classId: form.elements['classId'].value,
-        role: 'student',
-        password: '123' // 默认密码
-    };
+    try {
+        console.log('🔄 开始保存学生...');
+        const form = document.getElementById('studentForm');
+        const id = document.getElementById('studentId').value;
+        
+        console.log('📋 表单元素:', form);
+        console.log('🆔 学生ID:', id);
+        
+        const username = form.elements['username']?.value;
+        const name = form.elements['name']?.value;
+        const classId = form.elements['classId']?.value;
+        
+        console.log('👤 学生数据:', { username, name, classId });
+        
+        if (!username || !name || !classId) {
+            console.error('❌ 缺少必填字段:', { username, name, classId });
+            alert('请填写完整的学生信息（学号、姓名、班级）');
+            return;
+        }
+        
+        const student = {
+            id: id || generateId('stu_'),
+            username: username,
+            name: name,
+            classId: classId,
+            role: 'student',
+            password: '123' // 默认密码
+        };
 
-    await window.dbManager.add('users', student);
-    studentModal.hide();
-    loadAllData();
+        console.log('💾 准备保存:', student);
+        await window.dbManager.add('users', student);
+        console.log('✅ 保存成功');
+        
+        studentModal.hide();
+        console.log('🔄 重新加载数据...');
+        await loadAllData();
+        console.log('✅ 重新加载完成');
+    } catch (error) {
+        console.error('❌ 保存学生失败:', error);
+        alert('保存失败，请查看控制台');
+    }
 }
 
 // ==========================================
@@ -1613,6 +1764,11 @@ function getRegionLabel(region) {
 }
 
 // 显式暴露给全局作用域 (防止某些环境下的作用域问题)
+window.currentClasses = currentClasses;
+window.currentCourses = currentCourses;
+window.currentPlans = currentPlans;
+window.currentUsers = currentUsers;
+window.currentScores = currentScores;
 window.handleSort = handleSort;
 window.exportAllScores = exportAllScores;
 window.logout = logout;
@@ -1647,6 +1803,7 @@ window.cancelPhoneEdit = cancelPhoneEdit;
 window.unbindPhone = unbindPhone;
 window.triggerAvatarUpload = triggerAvatarUpload;
 window.handleAvatarChange = handleAvatarChange;
+window.validatePhone = validatePhone;
 
 // 事件绑定
 function bindEvents() {
@@ -1678,6 +1835,11 @@ function bindEvents() {
                     if (parentDropdown) {
                         parentDropdown.querySelector('.dropdown-toggle').classList.add('active');
                     }
+                }
+                
+                // 特殊处理：进入学生管理时重置搜索
+                if (targetId === 'student-section') {
+                    renderStudents(true);
                 }
             }
         };
