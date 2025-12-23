@@ -1,5 +1,16 @@
 // course-content.js - 课程内容管理功能 (IndexedDB 兼容版)
 
+// 更新用户信息
+function updateUserInfo() {
+    const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (session) {
+        const userNameEl = document.querySelector('.user-info h4');
+        const userDeptEl = document.querySelector('.user-info p');
+        if (userNameEl) userNameEl.textContent = session.name || '教师';
+        if (userDeptEl) userDeptEl.textContent = session.department || '未设置院系';
+    }
+}
+
 // 全局变量
 let materials = [];
 let courses = [];
@@ -47,6 +58,8 @@ function initializeDOMElements() {
 // 主初始化函数
 async function initCourseContent() {
     try {
+        // 更新用户信息
+        updateUserInfo();
         
         // 初始化数据
         materials = JSON.parse(localStorage.getItem('teacherMaterials')) || [];

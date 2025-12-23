@@ -205,7 +205,21 @@ window.updateWelcomeStats = async function(courses) {
     window.updateWelcomeMessage(activeCourseCount, pendingTasks, ungradedHomeworkCount, ungradedExamCount);
 };
 
+// 更新用户信息
+function updateUserInfo() {
+    const session = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (session) {
+        const userNameEl = document.querySelector('.user-info h4');
+        const userDeptEl = document.querySelector('.user-info p');
+        if (userNameEl) userNameEl.textContent = session.name || '教师';
+        if (userDeptEl) userDeptEl.textContent = session.department || '未设置院系';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // 更新用户信息
+    updateUserInfo();
+    
     // 初始化页面
     initDashboard();
     
