@@ -745,7 +745,7 @@ async function saveStudentProfile() {
         const email = emailText === '未绑定邮箱' ? '' : emailText;
         const phone = phoneText === '未绑定手机' ? '' : phoneText;
 
-        if (!username) return alert('请输入昵称/学号');
+        if (!username) return alert('学号不能为空');
 
         // 查找原用户对象以保留其他字段
         const originalUser = currentUsers.find(u => u.id === id);
@@ -794,16 +794,38 @@ async function saveStudent() {
             return;
         }
         
+        // 加密密码（使用与数据库相同的加密方式）
+        const salt = username; // 使用学号作为盐值
+        const defaultPassword = 'password'; // 与数据库中的默认密码保持一致
+        
+        console.log('🔐 密码加密调试信息:');
+        console.log('  CryptoJS可用性:', typeof CryptoJS !== 'undefined');
+        console.log('  原始密码:', defaultPassword);
+        console.log('  盐值:', salt);
+        
+        if (typeof CryptoJS === 'undefined') {
+            console.error('❌ CryptoJS未加载，无法加密密码');
+            alert('系统加密模块未加载，请刷新页面重试');
+            return;
+        }
+        
+        const hashedPassword = CryptoJS.SHA256(defaultPassword + salt).toString();
+        console.log('  加密结果:', hashedPassword.substring(0, 16) + '...');
+        
         const student = {
             id: id || generateId('stu_'),
             username: username,
             name: name,
             classId: classId,
             role: 'student',
-            password: '123' // 默认密码
+            password: hashedPassword,
+            salt: salt // 存储盐值用于登录验证
         };
 
-        console.log('💾 准备保存:', student);
+        console.log('💾 准备保存的学生数据:', {
+            ...student,
+            passwordPreview: 'hash: ' + hashedPassword.substring(0, 16) + '...'
+        });
         await window.dbManager.add('users', student);
         console.log('✅ 保存成功');
         
@@ -867,12 +889,27 @@ async function saveTeacher() {
         const form = document.getElementById('teacherForm');
         const id = document.getElementById('teacherId').value;
         
+        // 加密密码（使用与学生相同的加密方式）
+        const username = form.elements['username'].value;
+        const salt = username; // 使用用户名作为盐值
+        const defaultPassword = 'password'; // 与学生默认密码保持一致
+        
+        if (typeof CryptoJS === 'undefined') {
+            console.error('❌ CryptoJS未加载，无法加密密码');
+            alert('系统加密模块未加载，请刷新页面重试');
+            return;
+        }
+        
+        const hashedPassword = CryptoJS.SHA256(defaultPassword + salt).toString();
+        console.log('🔐 教师密码加密:', { username, salt, hashPreview: hashedPassword.substring(0, 16) + '...' });
+        
         const teacher = {
             id: id || generateId('tea_'),
-            username: form.elements['username'].value,
+            username: username,
             name: form.elements['name'].value,
             role: 'teacher',
-            password: '123'
+            password: hashedPassword,
+            salt: salt // 存储盐值用于登录验证
         };
 
         if (id) {

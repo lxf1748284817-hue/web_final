@@ -145,6 +145,14 @@ class AuthService {
      * 验证密码 - 兼容现有加密方式
      */
     async _verifyPassword(password, user) {
+        console.log('🔍 密码验证调试信息:');
+        console.log('  输入密码:', password);
+        console.log('  用户信息:', {
+            username: user.username,
+            storedPasswordHash: user.password,
+            salt: user.salt
+        });
+        
         if (typeof CryptoJS === 'undefined') {
             console.error('❌ CryptoJS未加载');
             return false;
@@ -152,6 +160,14 @@ class AuthService {
 
         const salt = user.salt || user.username;
         const hashedPassword = CryptoJS.SHA256(password + salt).toString();
+        
+        console.log('  加密过程:');
+        console.log('    使用的盐值:', salt);
+        console.log('    密码+盐值:', password + salt);
+        console.log('    计算得到的哈希:', hashedPassword);
+        console.log('    存储的哈希值:', user.password);
+        console.log('    哈希匹配结果:', hashedPassword === user.password);
+        
         return hashedPassword === user.password;
     }
 
