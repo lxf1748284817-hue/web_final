@@ -707,18 +707,25 @@ window.initGradesPage = async function() {
                 studentsData[studentIndex].homework
             );
             studentsData[studentIndex].gradeLevel = getGradeLevel(studentsData[studentIndex].finalGrade);
-            
-            // 更新显示
-            row.querySelector('.display-grade:nth-child(1)').textContent = studentsData[studentIndex].attendance;
-            row.querySelector('.display-grade:nth-child(2)').textContent = studentsData[studentIndex].midterm;
-            row.querySelector('.display-grade:nth-child(3)').textContent = studentsData[studentIndex].final;
-            row.querySelector('.display-grade:nth-child(4)').textContent = studentsData[studentIndex].homework;
-            
-            row.querySelector('.final-grade').textContent = studentsData[studentIndex].finalGrade;
-            row.querySelector('.final-grade').className = `final-grade grade-${studentsData[studentIndex].gradeLevel}`;
-            
-            row.querySelector('td:nth-child(8)').textContent = studentsData[studentIndex].gradeLevel;
-            row.querySelector('td:nth-child(8)').className = `grade-${studentsData[studentIndex].gradeLevel}`;
+
+            // 更新显示 - 使用 querySelectorAll 获取所有 display-grade 元素
+            const displayGrades = row.querySelectorAll('.display-grade');
+            if (displayGrades[0]) displayGrades[0].textContent = studentsData[studentIndex].attendance;
+            if (displayGrades[1]) displayGrades[1].textContent = studentsData[studentIndex].midterm;
+            if (displayGrades[2]) displayGrades[2].textContent = studentsData[studentIndex].final;
+            if (displayGrades[3]) displayGrades[3].textContent = studentsData[studentIndex].homework;
+
+            const finalGradeEl = row.querySelector('.final-grade');
+            if (finalGradeEl) {
+                finalGradeEl.textContent = studentsData[studentIndex].finalGrade;
+                finalGradeEl.className = `final-grade grade-${studentsData[studentIndex].gradeLevel}`;
+            }
+
+            const gradeLevelEl = row.querySelector('td:nth-child(8)');
+            if (gradeLevelEl) {
+                gradeLevelEl.textContent = studentsData[studentIndex].gradeLevel;
+                gradeLevelEl.className = `grade-${studentsData[studentIndex].gradeLevel}`;
+            }
         }
         
         // 保存数据到IndexedDB（直接使用中文，无需编码）
