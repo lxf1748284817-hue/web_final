@@ -347,6 +347,8 @@ async function openGradingModal(submissionId) {
             const student = users.find(u => u.id === submission.studentId && u.role === 'student');
             if (student) {
                 studentName = student.name || student.username || '未知学生';
+                // 将学生姓名保存到submission对象，以便后续使用
+                submission.studentName = studentName;
             }
         } catch (error) {
             console.warn('获取学生姓名失败:', error);
