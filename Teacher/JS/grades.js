@@ -652,23 +652,28 @@ window.initGradesPage = async function() {
     // 开始编辑行
     function startEditRow(row) {
         if (isEditing) return;
-        
+
         isEditing = true;
         currentEditRow = row;
         row.classList.add('editing');
-        
+
         // 显示输入框，隐藏显示文本
         row.querySelectorAll('.display-grade').forEach(span => {
             span.style.display = 'none';
         });
-        
+
         row.querySelectorAll('.grade-input').forEach(input => {
             input.style.display = 'inline-block';
         });
-        
+
         // 显示保存/取消按钮，隐藏编辑/删除按钮
-        row.querySelector('.edit-actions').style.display = 'flex';
-        row.querySelector('.edit-btn').parentElement.style.display = 'none';
+        const editActions = row.querySelector('.edit-actions');
+        const editBtn = row.querySelector('.edit-btn');
+        const deleteBtn = row.querySelector('.delete-btn');
+
+        if (editActions) editActions.style.display = 'flex';
+        if (editBtn) editBtn.style.display = 'none';
+        if (deleteBtn) deleteBtn.style.display = 'none';
     }
     
     // 保存编辑行
@@ -740,20 +745,25 @@ window.initGradesPage = async function() {
     // 结束编辑行
     function endEditRow(row) {
         row.classList.remove('editing');
-        
+
         // 显示显示文本，隐藏输入框
         row.querySelectorAll('.display-grade').forEach(span => {
             span.style.display = 'inline';
         });
-        
+
         row.querySelectorAll('.grade-input').forEach(input => {
             input.style.display = 'none';
         });
-        
+
         // 显示编辑/删除按钮，隐藏保存/取消按钮
-        row.querySelector('.edit-actions').style.display = 'none';
-        row.querySelector('.edit-btn').parentElement.style.display = 'flex';
-        
+        const editActions = row.querySelector('.edit-actions');
+        const editBtn = row.querySelector('.edit-btn');
+        const deleteBtn = row.querySelector('.delete-btn');
+
+        if (editActions) editActions.style.display = 'none';
+        if (editBtn) editBtn.style.display = 'flex';
+        if (deleteBtn) deleteBtn.style.display = 'flex';
+
         isEditing = false;
         currentEditRow = null;
     }

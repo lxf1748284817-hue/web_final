@@ -1204,6 +1204,11 @@ body {
     gap: 8px;
 }
 
+.edit-actions {
+    display: none;
+    gap: 4px;
+}
+
 .action-btn {
     background: none;
     border: none;
