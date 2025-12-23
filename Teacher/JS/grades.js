@@ -88,6 +88,9 @@ window.initGradesPage = async function() {
             // 初始化事件监听器
             initEventListeners();
             
+            // 更新表头显示的百分比
+            updateTableHeaders();
+            
             // 渲染表格
             renderTable();
             
@@ -499,6 +502,9 @@ window.initGradesPage = async function() {
             // 重置分页
             currentPage = 1;
             
+            // 更新表头显示的百分比
+            updateTableHeaders();
+            
             // 重新渲染表格
             renderTable();
             
@@ -514,6 +520,9 @@ window.initGradesPage = async function() {
             
             // 重置分页
             currentPage = 1;
+            
+            // 更新表头显示的百分比
+            updateTableHeaders();
             
             // 重新渲染表格
             renderTable();
@@ -810,12 +819,26 @@ window.initGradesPage = async function() {
         }
     }
     
+    // 更新表格表头显示的百分比
+    function updateTableHeaders() {
+        const tableHeaders = document.querySelectorAll('#grades-table thead th');
+        if (tableHeaders.length >= 6) {
+            tableHeaders[2].textContent = `考勤 (${weights.attendance}%)`;
+            tableHeaders[3].textContent = `期中 (${weights.midterm}%)`;
+            tableHeaders[4].textContent = `期末 (${weights.final}%)`;
+            tableHeaders[5].textContent = `作业 (${weights.homework}%)`;
+        }
+    }
+
     // 更新权重
     function updateWeights() {
         weights.attendance = parseInt(document.getElementById('attendance-weight').value) || 0;
         weights.midterm = parseInt(document.getElementById('midterm-weight').value) || 0;
         weights.final = parseInt(document.getElementById('final-weight').value) || 0;
         weights.homework = parseInt(document.getElementById('homework-weight').value) || 0;
+        
+        // 更新表头显示的百分比
+        updateTableHeaders();
         
         // 重新计算所有学生的总评成绩
         studentsData.forEach(student => {
@@ -1174,77 +1197,34 @@ window.initGradesPage = async function() {
                     content = content.slice(1);
                 }
                 
-                // 确保使用UTF-8编码解析
-                const decoder = new TextDecoder('utf-8');
-                if (e.target.result instanceof ArrayBuffer) {
-                    content = decoder.decode(e.target.result);
-                }
+                // 先获取行
+                const tempLines = content.split('\n').filter(line => line.trim());
+                const firstLine = tempLines[0] || '';
                 
-                // 使用更健壮的CSV解析，支持中文
-                const lines = content.split('\n').filter(line => line.trim());
+                // 检查是否有明显的中文编码问题
+                // 如果第一行包含乱码字符，尝试使用GBK编码重新读取
+                const hasChineseGarbled = /[\u00C0-\u00FF]{2,}/.test(firstLine) && 
+                                       !/[\u4E00-\u9FA5]/.test(firstLine) && 
+                                       /[\u00A1-\u00FF]/.test(firstLine);
                 
-                if (lines.length < 2) {
-                    showNotification('CSV文件为空或格式不正确', 'error');
-                    return;
-                }
-                
-                // 改进的CSV解析，处理包含逗号的中文内容
-                const headers = parseCSVLine(lines[0]);
-                
-                // 验证CSV格式
-                const requiredHeaders = ['学号', '姓名', '考勤成绩', '期中成绩', '期末成绩', '作业成绩'];
-                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-                
-                if (missingHeaders.length > 0) {
-                    showNotification(`CSV文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');
-                    return;
-                }
-                
-                // 解析数据
-                const data = [];
-                const errors = [];
-                
-                for (let i = 1; i < Math.min(lines.length, 10); i++) { // 最多解析10行作为预览
-                    if (lines[i].trim()) {
-                        const values = parseCSVLine(lines[i]);
-                        
-                        if (values.length >= 6) {
-                            // 验证数据
-                            const validation = validateStudentData({
-                                id: values[0],
-                                name: values[1],
-                                attendance: values[2],
-                                midterm: values[3],
-                                final: values[4],
-                                homework: values[5]
-                            });
-                            
-                            if (validation.isValid) {
-                                // 直接使用验证后的数据，无需编码
-                                data.push(validation.data);
-                            } else {
-                                errors.push(`第${i+1}行: ${validation.errors.join(', ')}`);
-                            }
+                if (hasChineseGarbled || (content && (content.includes('�') || content.includes('??')))) {
+                    console.log('检测到可能的编码问题，尝试使用GBK编码重新读取');
+                    // 如果包含乱码字符，尝试使用GBK编码重新读取
+                    const gbkReader = new FileReader();
+                    gbkReader.onload = function(gbkEvent) {
+                        try {
+                            const gbkContent = gbkEvent.target.result;
+                            parseCSVContent(gbkContent);
+                        } catch (gbkError) {
+                            console.error('GBK编码解析失败:', gbkError);
+                            showNotification('CSV文件编码不支持，请使用UTF-8编码保存文件', 'error');
                         }
-                    }
+                    };
+                    gbkReader.readAsText(file, 'GBK');
+                    return;
                 }
                 
-                // 显示预览和错误信息
-                showPreview(data, errors);
-                
-                // 如果有可导入的数据，启用导入按钮
-                if (data.length > 0) {
-                    document.getElementById('confirm-import').disabled = false;
-                    // 存储解析的数据用于实际导入
-                    window.importData = { data, fileContent: content };
-                } else {
-                    document.getElementById('confirm-import').disabled = true;
-                    showNotification('没有有效的可导入数据', 'warning');
-                }
-                
-                if (errors.length > 0) {
-                    showNotification(`发现 ${errors.length} 条数据错误，请检查后重新导入`, 'warning');
-                }
+                parseCSVContent(content);
                 
             } catch (error) {
                 console.error('CSV解析错误:', error);
@@ -1259,6 +1239,86 @@ window.initGradesPage = async function() {
         // 尝试不同的编码
         // 强制使用UTF-8编码读取文件
         reader.readAsText(file, 'UTF-8');
+    }
+    
+    // 解析CSV内容的函数
+    function parseCSVContent(content) {
+        try {
+            // 使用更健壮的CSV解析，支持中文
+            const lines = content.split('\n').filter(line => line.trim());
+            
+            if (lines.length < 2) {
+                showNotification('CSV文件为空或格式不正确', 'error');
+                return;
+            }
+            
+            // 改进的CSV解析，处理包含逗号的中文内容
+            const headers = parseCSVLine(lines[0]);
+            
+            // 验证CSV格式
+            const requiredHeaders = ['学号', '姓名', '考勤成绩', '期中成绩', '期末成绩', '作业成绩'];
+            const missingHeaders = requiredHeaders.filter(h => !headers.some(header => header.trim() === h));
+            
+            // 调试信息
+            console.log('CSV文件头:', headers);
+            console.log('要求的表头:', requiredHeaders);
+            console.log('缺少的表头:', missingHeaders);
+            
+            if (missingHeaders.length > 0) {
+                showNotification(`CSV文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');
+                return;
+            }
+            
+            // 解析数据
+            const data = [];
+            const errors = [];
+            
+            for (let i = 1; i < Math.min(lines.length, 10); i++) { // 最多解析10行作为预览
+                if (lines[i].trim()) {
+                    const values = parseCSVLine(lines[i]);
+                    
+                    if (values.length >= 6) {
+                        // 验证数据
+                        const validation = validateStudentData({
+                            id: values[0],
+                            name: values[1],
+                            attendance: values[2],
+                            midterm: values[3],
+                            final: values[4],
+                            homework: values[5]
+                        });
+                        
+                        if (validation.isValid) {
+                            // 直接使用验证后的数据，无需编码
+                            data.push(validation.data);
+                        } else {
+                            errors.push(`第${i+1}行: ${validation.errors.join(', ')}`);
+                        }
+                    }
+                }
+            }
+            
+            // 显示预览和错误信息
+            showPreview(data, errors);
+            
+            // 如果有可导入的数据，启用导入按钮
+            if (data.length > 0) {
+                document.getElementById('confirm-import').disabled = false;
+                // 存储解析的数据用于实际导入
+                window.importData = { data, fileContent: content };
+            } else {
+                document.getElementById('confirm-import').disabled = true;
+                showNotification('没有有效的可导入数据', 'warning');
+            }
+            
+            if (errors.length > 0) {
+                showNotification(`发现 ${errors.length} 条数据错误，请检查后重新导入`, 'warning');
+            }
+            
+        } catch (error) {
+            console.error('CSV解析错误:', error);
+            showNotification('CSV文件解析失败，请检查文件格式和编码', 'error');
+        }
     }
     
     // 改进的CSV行解析函数，处理中文和逗号
@@ -1322,7 +1382,12 @@ window.initGradesPage = async function() {
                 
                 // 验证Excel格式
                 const requiredHeaders = ['学号', '姓名', '考勤成绩', '期中成绩', '期末成绩', '作业成绩'];
-                const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+                const missingHeaders = requiredHeaders.filter(h => !headers.some(header => header.trim() === h));
+                
+                // 调试信息
+                console.log('Excel文件头:', headers);
+                console.log('要求的表头:', requiredHeaders);
+                console.log('缺少的表头:', missingHeaders);
                 
                 if (missingHeaders.length > 0) {
                     showNotification(`Excel文件缺少必要的列：${missingHeaders.join(', ')}`, 'error');

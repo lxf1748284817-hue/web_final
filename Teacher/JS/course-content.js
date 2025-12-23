@@ -102,22 +102,22 @@ async function initPage() {
         // 3. 初始化课程选择器
         initializeCourseSelectors();
         
-        // 4. 渲染材料列表
-        renderMaterials(materials);
-        
-        // 5. 更新存储使用情况
-        updateStorageUsage();
-        
-        // 6. 设置事件监听器
-        setupEventListeners();
-        
-        // 7. 设置拖拽上传
-        setupDragAndDrop();
-        
-        // 8. 初始化示例数据（如果没有数据）
+        // 4. 初始化示例数据（如果没有数据）
         if (materials.length === 0) {
             initializeSampleData();
         }
+        
+        // 5. 渲染材料列表
+        renderMaterials(materials);
+        
+        // 6. 更新存储使用情况
+        updateStorageUsage();
+        
+        // 7. 设置事件监听器
+        setupEventListeners();
+        
+        // 8. 设置拖拽上传
+        setupDragAndDrop();
         
         // 监听课程数据更新事件
         window.addEventListener('courseDataUpdated', async function() {
@@ -160,6 +160,22 @@ function initializeCourseSelectors() {
 }
 
 function initializeSampleData() {
+    // 先获取课程数据，确保 courseId 和 courseName 都匹配
+    const courseMap = {};
+    if (courses && courses.length > 0) {
+        courses.forEach(course => {
+            courseMap[course.code] = {
+                id: course.id,
+                name: course.name
+            };
+        });
+    }
+    
+    // 使用实际的课程ID和名称（如果可用），否则使用硬编码的值
+    const cs101Course = courseMap['CS101'] || { id: 'course_cs101', name: '数据结构与算法' };
+    const ma202Course = courseMap['MA202'] || { id: 'course_ma202', name: '高等数学' };
+    const phy105Course = courseMap['PHY105'] || { id: 'course_phy105', name: '大学物理' };
+    
     const sampleMaterials = [
         {
             id: 'material_1',
@@ -167,20 +183,20 @@ function initializeSampleData() {
             description: '数据结构课程第一章课件，包含基本概念和复杂度分析',
             type: 'pdf',
             size: 2.4,
-            courseId: '1',
-            courseName: '数据结构与算法',
+            courseId: cs101Course.id,
+            courseName: cs101Course.name,
             uploadDate: '2023-09-15',
             uploadTime: '10:30',
             fileUrl: '#'
         },
         {
             id: 'material_2',
-            name: '数据库设计案例.doc',
-            description: '学生数据库设计项目案例',
-            type: 'doc',
-            size: 1.8,
-            courseId: '2',
-            courseName: '数据库系统原理',
+            name: '高等数学基础.pdf',
+            description: '高等数学第一章课件，包含微积分基础概念',
+            type: 'pdf',
+            size: 2.8,
+            courseId: ma202Course.id,
+            courseName: ma202Course.name,
             uploadDate: '2023-09-18',
             uploadTime: '14:20',
             fileUrl: '#'
@@ -191,8 +207,8 @@ function initializeSampleData() {
             description: '实验一：网络协议分析',
             type: 'pdf',
             size: 3.2,
-            courseId: '3',
-            courseName: '计算机网络',
+            courseId: phy105Course.id,
+            courseName: phy105Course.name,
             uploadDate: '2023-09-20',
             uploadTime: '09:15',
             fileUrl: '#'
