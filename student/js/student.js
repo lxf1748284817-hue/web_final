@@ -672,7 +672,7 @@ async function loadCourseMaterials(planId) {
                         <button class="btn-view" onclick="viewMaterial('${material.id}', '${material.type}', '${material.fileUrl || material.url}', '${material.title || material.name}')">
                             ${material.type === 'video' || material.type === 'image' ? '预览' : '查看'}
                         </button>
-                        <button class="btn-download" onclick="downloadMaterial('${material.fileUrl || material.url}', '${material.title || material.name}')">
+                        <button class="btn-download" onclick="downloadMaterial('${material.id}', '${material.type}', '${material.fileUrl || material.url}', '${material.title || material.name}')">
                             下载
                         </button>
                     </div>
@@ -741,8 +741,79 @@ function viewMaterial(materialId, type, url, name) {
 }
 
 // 下载课件
-function downloadMaterial(url, name) {
-    alert(`开始下载：${name}\n\n实际项目中会触发文件下载。`);
+async function downloadMaterial(materialId, type, url, name) {
+    try {
+        // 从数据库获取完整的资料信息（包含 fileName）
+        const material = await getDataById('course_materials', materialId);
+        const fileName = material?.fileName || name;
+
+        // 生成模拟文件内容（参考教师端实现）
+        const fileContent = generateMaterialContent(material, fileName);
+
+        // 创建 Blob 和下载链接
+        const blob = new Blob([fileContent], { type: getMimeType(type) });
+        const downloadUrl = URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+
+        // 触发下载
+        document.body.appendChild(link);
+        link.click();
+
+        // 清理
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(downloadUrl);
+        }, 100);
+
+        alert(`开始下载：${fileName}`);
+    } catch (error) {
+        console.error('下载失败:', error);
+        alert('下载失败，请稍后重试');
+    }
+}
+
+// 生成资料文件内容（模拟）
+function generateMaterialContent(material, fileName) {
+    const timestamp = new Date().toLocaleString('zh-CN');
+
+    return `课程资料：${fileName}\n\n` +
+           `标题：${material.title || material.name}\n` +
+           `描述：${material.description}\n` +
+           `类型：${material.type}\n` +
+           `大小：${material.fileSize || material.size || '-'}\n` +
+           `上传时间：${material.uploadDate || '-'}\n` +
+           `下载时间：${timestamp}\n\n` +
+           `--- 这是模拟的文件内容 ---\n` +
+           `实际项目中这里应该是真实的文件数据`;
+}
+
+// 获取文件 MIME 类型
+function getMimeType(fileType) {
+    const mimeTypes = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'excel': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'image': 'image/jpeg',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'video': 'video/mp4',
+        'mp4': 'video/mp4',
+        'audio': 'audio/mpeg',
+        'mp3': 'audio/mpeg',
+        'zip': 'application/zip',
+        'rar': 'application/x-rar-compressed'
+    };
+
+    return mimeTypes[fileType] || 'text/plain';
 }
 
 // 加载课程作业
@@ -1045,6 +1116,7 @@ async function loadSemesterGrades() {
         
         const gradeClass = getGradeClass(score.total);
         
+        const gpa = score.gpa || calculateGPA(score.total);
         rows.push(`
             <tr>
                 <td>${course.code}</td>
@@ -1052,7 +1124,7 @@ async function loadSemesterGrades() {
                 <td>${getCategoryName(course.category)}</td>
                 <td>${course.credits}</td>
                 <td><span class="grade-badge ${gradeClass}">${score.total || '-'}</span></td>
-                <td>${score.gpa || '-'}</td>
+                <td>${gpa.toFixed(2)}</td>
                 <td>${plan.semester}</td>
                 <td>
                     <button class="btn-view-detail" onclick="viewGradeDetail('${plan.id}')">
@@ -1075,6 +1147,20 @@ function getGradeClass(score) {
     return 'fail';
 }
 
+// 根据分数计算GPA
+function calculateGPA(score) {
+    if (!score || score < 60) return 0.0;
+    if (score >= 90) return 4.0;
+    if (score >= 85) return 3.7;
+    if (score >= 82) return 3.3;
+    if (score >= 78) return 3.0;
+    if (score >= 75) return 2.7;
+    if (score >= 72) return 2.3;
+    if (score >= 68) return 2.0;
+    if (score >= 64) return 1.7;
+    return 1.0;
+}
+
 // 计算成绩汇总
 async function calculateGradeSummary() {
     const scores = await getDataByIndex('scores', 'studentId', currentStudent.id);
@@ -1090,9 +1176,12 @@ async function calculateGradeSummary() {
         if (!plan) continue;
         
         const course = await getDataById('courses', plan.courseId);
-        if (course && score.gpa) {
+        if (course) {
+            // 只要课程存在就计算学分
             totalCredits += course.credits;
-            totalGradePoints += score.gpa * course.credits;
+            // 使用total分数计算GPA（如果score.gpa不存在）
+            const gpa = score.gpa || calculateGPA(score.total);
+            totalGradePoints += gpa * course.credits;
         }
     }
     
@@ -1141,7 +1230,7 @@ async function loadGradeDetail(planId) {
         
         // 填充总评成绩
         document.getElementById('finalGrade').textContent = score.total || '-';
-        document.getElementById('finalGPA').textContent = score.gpa || '-';
+        document.getElementById('finalGPA').textContent = (score.gpa || calculateGPA(score.total)).toFixed(2);
         
         // 填充成绩明细（无明细表，直接显示默认构成）
         const tbody = document.getElementById('breakdownTableBody');

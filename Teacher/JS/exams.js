@@ -782,7 +782,8 @@ function viewSubmissions(assignmentId, type) {
         const typeMatch = s.assignmentType === type || (!s.assignmentType && type === 'homework');
         
         return idMatch && typeMatch;
-    
+    });
+
     let message = `提交情况 (共${assignmentSubmissions.length}人):\n\n`;
     assignmentSubmissions.forEach(sub => {
         message += `${sub.studentName}: ${sub.status} ${sub.graded ? `(已批改: ${sub.score}分)` : '(未批改)'}\n`;

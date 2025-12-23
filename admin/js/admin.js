@@ -933,7 +933,7 @@ function renderPlans(data = null) {
             <td>${getUserName(p.teacherId)}</td>
             <td><span class="badge bg-light text-dark border">${p.semester}</span></td>
             <td>${p.classroom}</td>
-            <td>${formatTimeSlots(p.timeSlots)}</td>
+            <td>${formatTimeSlots(p.schedule || p.timeSlots)}</td>
             <td class="text-end pe-4">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="openPlanModal('${p.id}')" title="编辑">
                     <i class="bi bi-pencil"></i>
@@ -1146,13 +1146,13 @@ function openPlanModal(id = null) {
             teacherSelect.value = p.teacherId;
             document.getElementById('planSemester').value = p.semester;
             document.getElementById('planClassroom').value = p.classroom;
-            document.getElementById('planMaxStudents').value = p.maxStudents || 50;
-            
+            document.getElementById('planCapacity').value = p.capacity || 50;
+
             // 解析并填充 Checkbox
             // 假设格式: "周一,周三 1-2节,3-4节 (全周)" 或 简单格式 "周一 1-2节"
             // 这里我们需要一个解析函数，或者如果数据是简单格式，我们尝试解析
-            parseAndFillTimeSlots(p.timeSlots, p.weekType);
-            
+            parseAndFillTimeSlots(p.schedule || p.timeSlots, p.weekType);
+
             document.getElementById('planModalLabel').innerHTML = '<i class="bi bi-pencil-square me-2"></i>编辑开课计划';
         }
     } else {
@@ -1174,7 +1174,7 @@ async function savePlan() {
     const teacherId = document.getElementById('planTeacherId').value;
     const semester = document.getElementById('planSemester').value;
     const classroom = document.getElementById('planClassroom').value;
-    const maxStudents = document.getElementById('planMaxStudents').value;
+    const capacity = document.getElementById('planCapacity').value;
 
     // 获取 Checkbox 值
     const days = Array.from(document.querySelectorAll('input[name="planDay"]:checked')).map(cb => cb.value);
@@ -1205,9 +1205,10 @@ async function savePlan() {
         teacherId,
         semester,
         classroom,
-        timeSlots: timeSlotsStr,
-        weekType, // 新增字段存储周类型
-        maxStudents: parseInt(maxStudents)
+        schedule: timeSlotsStr,
+        capacity: parseInt(capacity),
+        enrolled: 0,
+        weekType
     };
 
     await window.dbManager.add('plans', plan);
@@ -1285,8 +1286,9 @@ function checkConflict(currentId, semester, classroom, teacherId, days, slots, w
         // 解析现有计划的时间
         // 假设现有数据格式可能不统一，这里做简单处理
         // 如果是旧数据 "周一 1-2节"，我们需要解析它
-        const pDays = p.timeSlots.split(' ')[0].split(',');
-        const pSlotsStr = p.timeSlots.split(' ')[1].replace('节', '');
+        const timeStr = p.schedule || p.timeSlots;
+        const pDays = timeStr.split(' ')[0].split(',');
+        const pSlotsStr = timeStr.split(' ')[1].replace('节', '');
         let pSlots = [];
         if (pSlotsStr.includes('-')) {
             const [s, e] = pSlotsStr.split('-').map(Number);
@@ -1432,8 +1434,9 @@ function renderScheduleGrid(tbody, plans, showSemester = false) {
                     // 查找在该天、该大节内有课的计划
                     // 只要计划的 slots 与 section.slots 有交集
                     const cellPlans = plans.filter(p => {
-                        const pDays = p.timeSlots.split(' ')[0].split(',');
-                        const pSlotsStr = p.timeSlots.split(' ')[1].replace('节', '');
+                        const timeStr = p.schedule || p.timeSlots;
+                        const pDays = timeStr.split(' ')[0].split(',');
+                        const pSlotsStr = timeStr.split(' ')[1].replace('节', '');
                         let pSlots = [];
                         if (pSlotsStr.includes('-')) {
                             const [s, e] = pSlotsStr.split('-').map(Number);

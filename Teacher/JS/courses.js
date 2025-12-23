@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="course-meta">
                 <div class="course-meta-item">
                     <span class="course-meta-label">学分</span>
-                    <span class="course-meta-value">${course.credit}</span>
+                    <span class="course-meta-value">${course.credits || '-'}</span>
                 </div>
                 <div class="course-meta-item">
                     <span class="course-meta-label">学生</span>
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="course-meta-item">
                     <span class="course-meta-label">学期</span>
-                    <span class="course-meta-value">${course.semester}</span>
+                    <span class="course-meta-value">-</span>
                 </div>
             </div>
             <div class="course-actions-list">
@@ -589,9 +589,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // 填充表单数据
         document.getElementById('courseName').value = course.name;
         document.getElementById('courseCode').value = course.code;
-        document.getElementById('courseCredit').value = course.credit;
-        document.getElementById('courseClass').value = course.class;
-        document.getElementById('courseSemester').value = course.semester;
+        document.getElementById('courseCredit').value = course.credits || 3;
+        document.getElementById('courseClass').value = course.code; // 用课程代码代替班级
         document.getElementById('courseDescription').value = course.description;
         document.getElementById('allowPreview').checked = course.allowPreview || false;
         
@@ -723,8 +722,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const courseName = document.getElementById('courseName').value.trim();
             const courseCode = document.getElementById('courseCode').value.trim();
             const courseCredit = document.getElementById('courseCredit').value;
-            const courseClass = document.getElementById('courseClass').value.trim();
-            const courseSemester = document.getElementById('courseSemester').value;
             const courseDescription = document.getElementById('courseDescription').value.trim();
             const allowPreview = document.getElementById('allowPreview').checked;
             
@@ -749,9 +746,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 id: currentEditCourseId || 'course_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 7),
                 name: courseName,
                 code: courseCode,
-                credit: courseCredit,
-                class: courseClass,
-                semester: courseSemester,
+                credits: parseInt(courseCredit),
+                hours: 48, // 默认课时
                 description: courseDescription,
                 department: '计算机系', // 默认院系，确保与其他模块数据兼容
                 category: 'required', // 默认设为必修，确保学生端正常显示
@@ -807,10 +803,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const courseName = document.getElementById('courseName').value.trim() || '示例课程名称';
         const courseCode = document.getElementById('courseCode').value.trim() || 'CS000';
         const courseClass = document.getElementById('courseClass').value.trim() || '计科200班';
-        const courseSemester = document.getElementById('courseSemester').value || '2023-2024学年秋季';
         const courseCredit = document.getElementById('courseCredit').value || '3';
         const courseDescription = document.getElementById('courseDescription').value.trim() || '这里是课程简介，用于描述课程的主要内容、教学目标等信息。';
-        
+
         // 生成预览HTML
         const previewHTML = `
             <div class="preview-banner">
@@ -819,7 +814,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="preview-content">
                 <div class="preview-header">
                     <h2>${courseName}</h2>
-                    <p>${courseCode} · ${courseClass} · ${courseSemester} · ${courseCredit}学分</p>
+                    <p>${courseCode} · ${courseClass} · ${courseCredit}学分</p>
                 </div>
                 <div class="preview-section">
                     <h3>课程简介</h3>
